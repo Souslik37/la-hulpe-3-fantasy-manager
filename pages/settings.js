@@ -50,6 +50,38 @@
       });
     }
 
+    const avatarPreview = el('div', { style: { marginBottom: '10px' } });
+    function renderAvatarPreview() {
+      avatarPreview.innerHTML = window.LH3.utils.avatar.renderAvatar(coach.name || manager.name, coach.avatarUrl, 78);
+    }
+    renderAvatarPreview();
+
+    const avatarFileInput = el('input', {
+      type: 'file', accept: 'image/*',
+      onChange: async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const dataUri = await window.LH3.utils.oldPhoto.applyFilter(file);
+          coach.avatarUrl = dataUri;
+          renderAvatarPreview();
+          window.LH3.components.toast.show('Photo transformée — clique "Enregistrer" pour la garder ✅', 'success');
+        } catch (err) {
+          console.error('[settings] échec du filtre photo', err);
+          window.LH3.components.toast.show('Impossible de traiter cette photo — réessaie avec une autre.', 'error');
+        }
+      },
+    });
+
+    const avatarField = el('div', { className: 'field' }, [
+      el('label', {}, ['Photo du coach']),
+      avatarPreview,
+      avatarFileInput,
+      el('div', { className: 'field-hint' }, [
+        'Choisis une photo (la tienne, pourquoi pas) — elle est automatiquement transformée en vieille photo de coach retrouvée dans les archives du club (sépia, grain). Tout se passe dans ton navigateur, rien n\'est envoyé nulle part.',
+      ]),
+    ]);
+
     const accentInput = el('input', {
       type: 'text', value: coach.accent || '',
       onInput: (e) => { coach.accent = e.target.value; },
@@ -68,6 +100,7 @@
 
     const card = el('div', { className: 'card' }, [
       el('h3', { style: { marginBottom: '14px' } }, ['🧢 Mon coach']),
+      avatarField,
       field('name', 'Nom'),
       regenField('previousJob', 'Métier précédent', window.LH3.services.managerService.randomJob),
       accentField,
