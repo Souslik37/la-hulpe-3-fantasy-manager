@@ -48,6 +48,18 @@
     if (!ok) return { ok: false, reason: 'Écriture impossible — vérifie ta connexion et réessaie.' };
 
     state().players.push(player);
+
+    // Chaque manager a une compo figée depuis son inscription (voir
+    // managerService.defaultSquad) — sans ça, un joueur ajouté après coup
+    // n'apparaîtrait dans AUCUNE équipe. On le place sur le banc de tout le
+    // monde, à charge pour chacun de le titulariser s'il le souhaite.
+    const managers = Object.values(state().managers);
+    for (const manager of managers) {
+      if (manager.squad.starters.includes(id) || manager.squad.bench.includes(id)) continue;
+      manager.squad.bench.push(id);
+      await window.LH3.services.storageService.saveManager(manager);
+    }
+
     window.LH3.services.stateService.notify();
     return { ok: true, player };
   }
