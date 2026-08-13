@@ -271,6 +271,8 @@ img { max-width: 100%; display: block; }
 }
 .info-hint:hover { background: var(--border-light); color: var(--text-1); }
 
+input[type=file] { font-size: 11.5px; color: var(--text-2); max-width: 100%; }
+
 input[type=text], input[type=number], input[type=date], textarea, select {
   background: var(--bg-1);
   border: 1.5px solid var(--border-light);

@@ -588,13 +588,36 @@
         else rerenderRoster();
       },
     });
+    const avatarFileInput = el('input', {
+      type: 'file', accept: 'image/*', className: 'avatar-file-input',
+      onChange: async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        let dataUri;
+        try {
+          dataUri = await window.LH3.utils.imageResize.toDataUri(file);
+        } catch (err) {
+          console.error('[admin] échec traitement photo joueur', err);
+          window.LH3.components.toast.show('Impossible de traiter cette photo — réessaie avec une autre.', 'error');
+          return;
+        }
+        const res = await window.LH3.services.rosterService.setPlayerAvatar(player.id, dataUri);
+        if (!res.ok) { window.LH3.components.toast.show(res.reason, 'error'); return; }
+        window.LH3.components.toast.show('Avatar de ' + player.name + ' mis à jour ✅', 'success');
+        rerenderRoster();
+      },
+    });
+    const avatarCell = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } }, [
+      avatarInput,
+      avatarFileInput,
+    ]);
 
     return el('div', {
       className: 'card', style: { display: 'grid', gridTemplateColumns: '40px 1fr 1.6fr auto', gap: '10px', alignItems: 'center', padding: '10px 16px', marginBottom: '6px' },
     }, [
       avatarBox,
       nameInput,
-      avatarInput,
+      avatarCell,
       el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemovePlayer(player, rerenderRoster) }, ['Retirer']),
     ]);
   }
