@@ -160,6 +160,22 @@
     return !error;
   }
 
+  /** Admin uniquement : ajoute un match au calendrier. */
+  async function insertMatch(match) {
+    const { error } = await client().from('matches').insert({
+      id: match.id, matchday: match.matchday, opponent: match.opponent, date: match.date, status: match.status,
+    });
+    if (error) console.error('[storageService] échec ajout match', error);
+    return !error;
+  }
+
+  /** Admin uniquement : retire un match du calendrier (cascade sur ses pronostics). */
+  async function deleteMatch(id) {
+    const { error } = await client().from('matches').delete().eq('id', id);
+    if (error) console.error('[storageService] échec suppression match', error);
+    return !error;
+  }
+
   /** Admin uniquement : renomme/redate une période d'assiduité. */
   async function updatePresencePeriod(id, fields) {
     const { error } = await client().from('presence_periods').update(fields).eq('id', id);
@@ -257,5 +273,6 @@
     insertPlayer, updatePlayer, deletePlayer,
     updatePresencePeriod, savePresenceRatings,
     deleteManager,
+    insertMatch, deleteMatch,
   };
 })();

@@ -53,6 +53,107 @@
     return modal;
   }
 
+  function confirmUnfinalizeMatch(match, rerender) {
+    window.LH3.components.modal.open({
+      title: 'Annuler le résultat de J' + match.matchday + ' ?',
+      body: el('div', {}, [
+        el('p', { className: 'small' }, ['Les PE distribués pour cette journée sont repris à tout le monde, le résultat est effacé, et la journée redevient verrouillée. Les pronostics déjà soumis restent intacts. Utile si c\'était un essai.']),
+      ]),
+      actions: [
+        { label: 'Annuler', className: 'btn-ghost' },
+        {
+          label: 'Annuler le résultat',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: async (btn) => {
+            if (btn) { btn.disabled = true; btn.textContent = 'Annulation...'; }
+            const res = await window.LH3.services.seasonService.unfinalizeMatch(match.id);
+            if (!res.ok) {
+              window.LH3.components.toast.show(res.reason, 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Annuler le résultat'; }
+              return;
+            }
+            window.LH3.components.toast.show('Résultat annulé, PE repris ✅', 'success');
+            window.LH3.components.modal.close();
+            rerender();
+          },
+        },
+      ],
+    });
+  }
+
+  function confirmRemoveMatch(match, rerender) {
+    const wasPlayed = match.status === 'termine';
+    window.LH3.components.modal.open({
+      title: 'Supprimer J' + match.matchday + ' — ' + match.opponent + ' ?',
+      body: el('div', {}, [
+        el('p', { className: 'small' }, [
+          wasPlayed
+            ? 'Cette journée était déjà notée : les PE distribués sont repris avant suppression, et les pronostics associés disparaissent définitivement.'
+            : 'Les pronostics associés disparaissent définitivement.',
+        ]),
+      ]),
+      actions: [
+        { label: 'Annuler', className: 'btn-ghost' },
+        {
+          label: 'Supprimer définitivement',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: async (btn) => {
+            if (btn) { btn.disabled = true; btn.textContent = 'Suppression...'; }
+            const res = await window.LH3.services.seasonService.removeMatch(match.id);
+            if (!res.ok) {
+              window.LH3.components.toast.show(res.reason, 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Supprimer définitivement'; }
+              return;
+            }
+            window.LH3.components.toast.show('Match supprimé', 'success');
+            window.LH3.components.modal.close();
+            rerender();
+          },
+        },
+      ],
+    });
+  }
+
+  function openAddMatchModal(rerender) {
+    const matchdayInput = el('input', { type: 'number', min: '1', placeholder: 'Ex : 15' });
+    const opponentInput = el('input', { type: 'text', placeholder: 'Ex : Adversaire (demi-finale)' });
+    const dateInput = el('input', { type: 'date' });
+
+    const modal = window.LH3.components.modal.open({
+      title: 'Ajouter un match',
+      body: el('div', {}, [
+        el('div', { className: 'field' }, [el('label', {}, ['Numéro de journée']), matchdayInput]),
+        el('div', { className: 'field' }, [el('label', {}, ['Adversaire']), opponentInput]),
+        el('div', { className: 'field' }, [el('label', {}, ['Date']), dateInput]),
+      ]),
+      actions: [
+        { label: 'Annuler', className: 'btn-ghost' },
+        {
+          label: 'Ajouter',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: async (btn) => {
+            if (btn) { btn.disabled = true; btn.textContent = 'Ajout en cours...'; }
+            const res = await window.LH3.services.seasonService.addMatch({
+              matchday: matchdayInput.value, opponent: opponentInput.value, date: dateInput.value,
+            });
+            if (!res.ok) {
+              window.LH3.components.toast.show(res.reason, 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Ajouter'; }
+              return;
+            }
+            window.LH3.components.toast.show('Match ajouté ✅', 'success');
+            window.LH3.components.modal.close();
+            rerender();
+          },
+        },
+      ],
+    });
+    return modal;
+  }
+
   function buildMatchRow(match, rerender) {
     const opponentInput = el('input', {
       type: 'text', value: match.opponent,
@@ -71,12 +172,18 @@
     ]);
     statusSelect.value = match.status;
 
+    const actions = [el('button', { className: 'btn btn-sm', onClick: () => openResultModal(match, rerender) }, [match.result ? 'Modifier résultat' : 'Encoder résultat'])];
+    if (match.status === 'termine') {
+      actions.push(el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmUnfinalizeMatch(match, rerender) }, ['Annuler résultat']));
+    }
+    actions.push(el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemoveMatch(match, rerender) }, ['Supprimer']));
+
     return el('div', { className: 'card', style: { display: 'grid', gridTemplateColumns: '50px 1.4fr 1fr 1fr auto', gap: '10px', alignItems: 'center', padding: '12px 16px', marginBottom: '8px' } }, [
       el('div', { className: 'muted', style: { fontWeight: '800' } }, ['J' + match.matchday]),
       opponentInput,
       dateInput,
       statusSelect,
-      el('button', { className: 'btn btn-sm', onClick: () => openResultModal(match, rerender) }, [match.result ? 'Modifier résultat' : 'Encoder résultat']),
+      el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' } }, actions),
     ]);
   }
 
@@ -319,7 +426,10 @@
       el('p', {}, ['Gère le calendrier et encode les résultats officiels — tout le reste (PE, journal) se calcule automatiquement.']),
     ]));
 
-    root.appendChild(el('div', { className: 'section-title' }, ['📅 Calendrier de la saison']));
+    root.appendChild(el('div', { className: 'section-title' }, [
+      '📅 Calendrier de la saison',
+      el('span', { className: 'see-all', onClick: () => openAddMatchModal(rerender) }, ['+ Ajouter un match']),
+    ]));
     const list = el('div', {});
     root.appendChild(list);
 
