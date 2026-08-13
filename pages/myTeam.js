@@ -100,16 +100,27 @@
         el('div', { className: 'badge badge-green', style: { marginTop: '6px' } }, [card.overall + ' overall · ' + window.LH3.utils.format.rarityLabel(card.rarity)]),
       ]);
 
+      const reservedNotes = CONFIG.attributes
+        .map((attr) => ({ attr, n: playerService.unspentReserved(manager, attr.key) }))
+        .filter((x) => x.n > 0);
+
       const pointsBanner = el('div', { className: 'boost-points-card', style: { marginBottom: '16px' } }, [
         el('div', { className: 'boost-points-n' }, [String(remaining)]),
         el('div', { className: 'boost-points-l' }, ['Points restants à répartir']),
+        reservedNotes.length ? el('div', { className: 'muted small', style: { marginTop: '6px' } }, [
+          'dont ' + reservedNotes.map((x) => '+' + x.n + ' réservés à ' + x.attr.label).join(', '),
+        ]) : null,
       ]);
 
       const rows = el('div', {});
       CONFIG.attributes.forEach((attr) => {
         const value = card.attributes[attr.key];
+        const reserved = playerService.unspentReserved(manager, attr.key);
         const row = el('div', { className: 'boost-row' }, [
-          el('div', { className: 'boost-label' }, [attr.icon + ' ' + attr.label]),
+          el('div', { className: 'boost-label' }, [
+            attr.icon + ' ' + attr.label,
+            reserved > 0 ? el('span', { className: 'badge badge-green', style: { marginLeft: '8px' } }, ['+' + reserved + ' dispo']) : null,
+          ]),
           el('div', { className: 'boost-controls' }, [
             el('button', {
               className: 'stepper-btn',

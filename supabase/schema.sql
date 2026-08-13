@@ -29,6 +29,11 @@ create table managers (
   pe integer not null default 0,
   history jsonb not null default '[]'::jsonb,
   fun_points integer not null default 0,
+  -- PE reçus via un événement ciblé, en attente d'être investis sur cet
+  -- attribut précis — ex: {"troisiemeMiTemps": 100}. Toujours du PE normal
+  -- (manager.pe) en dessous, jamais une monnaie séparée — voir
+  -- playerService.pointsRemaining/pointsRemainingFor.
+  attribute_reserved jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 
@@ -103,7 +108,10 @@ create table club_events (
   icon text not null default '🎉',
   date date not null,
   amount integer not null,
-  recipient_ids uuid[] not null default '{}'::uuid[]
+  recipient_ids uuid[] not null default '{}'::uuid[],
+  -- null = Points Fun génériques (comme avant) ; sinon une des clés de
+  -- CONFIG.attributes (ex: 'troisiemeMiTemps') — voir managers.attribute_reserved.
+  attribute_key text
 );
 
 -- ============================================================

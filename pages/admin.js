@@ -366,14 +366,29 @@
     const dateInput = el('input', { type: 'date' });
     dateInput.valueAsDate = new Date();
 
+    const attrSelect = el('select', {}, [
+      el('option', { value: '' }, ['🎉 Points Fun (générique, sans lien avec les PE)']),
+      ...window.LH3.data.CONFIG.attributes.map((a) => el('option', { value: a.key }, [a.icon + ' ' + a.label])),
+    ]);
+
+    const hint = el('div', { className: 'field-hint' }, [
+      'Complètement séparé des PE : aucun impact sur le classement ni sur le budget d\'attributs, juste pour le fun.',
+    ]);
+    attrSelect.addEventListener('change', () => {
+      hint.textContent = attrSelect.value
+        ? 'Donne du PE normal (même monnaie que d\'habitude), mais réservé : ce PE ne pourra être investi que sur cet attribut précis, tant qu\'il n\'y est pas mis il ne compte pas comme dépensable ailleurs.'
+        : 'Complètement séparé des PE : aucun impact sur le classement ni sur le budget d\'attributs, juste pour le fun.';
+    });
+
     const modal = window.LH3.components.modal.open({
       title: 'Créer un événement',
       body: el('div', {}, [
         el('div', { className: 'field' }, [el('label', {}, ['Nom de l\'événement']), titleInput]),
         el('div', { className: 'field' }, [el('label', {}, ['Icône']), iconInput]),
-        el('div', { className: 'field' }, [el('label', {}, ['Points Fun offerts à chaque manager']), amountInput]),
+        el('div', { className: 'field' }, [el('label', {}, ['Type de bonus']), attrSelect]),
+        el('div', { className: 'field' }, [el('label', {}, ['Montant offert à chaque manager']), amountInput]),
         el('div', { className: 'field' }, [el('label', {}, ['Date']), dateInput]),
-        el('div', { className: 'field-hint' }, ['Complètement séparé des PE : aucun impact sur le classement ni sur le budget d\'attributs, juste pour le fun.']),
+        hint,
       ]),
       actions: [
         { label: 'Annuler', className: 'btn-ghost' },
@@ -385,13 +400,14 @@
             if (btn) { btn.disabled = true; btn.textContent = 'Distribution en cours...'; }
             const res = await window.LH3.services.eventService.createEvent({
               title: titleInput.value, icon: iconInput.value, amount: amountInput.value, date: dateInput.value,
+              attributeKey: attrSelect.value || null,
             });
             if (!res.ok) {
               window.LH3.components.toast.show(res.reason, 'error');
               if (btn) { btn.disabled = false; btn.textContent = 'Créer et distribuer'; }
               return;
             }
-            window.LH3.components.toast.show('Événement créé, Points Fun distribués ✅', 'success');
+            window.LH3.components.toast.show('Événement créé, bonus distribué ✅', 'success');
             window.LH3.components.modal.close();
             rerenderEvents();
           },
@@ -405,7 +421,11 @@
     window.LH3.components.modal.open({
       title: 'Annuler "' + event.title + '" ?',
       body: el('div', {}, [
-        el('p', { className: 'small' }, ['Les ' + event.amount + ' Points Fun distribués sont repris à tout le monde, et l\'événement disparaît du journal.']),
+        el('p', { className: 'small' }, [
+          event.attributeKey
+            ? 'Les ' + event.amount + ' PE distribués (réservés à ' + window.LH3.services.eventService.attributeLabel(event.attributeKey) + ') sont repris à tout le monde, et l\'événement disparaît du journal.'
+            : 'Les ' + event.amount + ' Points Fun distribués sont repris à tout le monde, et l\'événement disparaît du journal.',
+        ]),
       ]),
       actions: [
         { label: 'Annuler', className: 'btn-ghost' },
@@ -431,11 +451,14 @@
   }
 
   function buildEventRow(event, rerenderEvents) {
+    const badgeLabel = event.attributeKey
+      ? '+' + event.amount + ' PE · ' + window.LH3.services.eventService.attributeLabel(event.attributeKey)
+      : '+' + event.amount + ' Points Fun';
     return el('div', { className: 'card', style: { display: 'grid', gridTemplateColumns: '40px 1.4fr 1fr auto auto', gap: '10px', alignItems: 'center', padding: '12px 16px', marginBottom: '8px' } }, [
       el('div', { style: { fontSize: '22px', textAlign: 'center' } }, [event.icon]),
       el('div', { style: { fontWeight: '750' } }, [event.title]),
       el('div', { className: 'muted small' }, [window.LH3.utils.format.formatDateFr(event.date)]),
-      el('span', { className: 'badge badge-green' }, ['+' + event.amount + ' Points Fun']),
+      el('span', { className: 'badge badge-green' }, [badgeLabel]),
       el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemoveEvent(event, rerenderEvents) }, ['Annuler']),
     ]);
   }
