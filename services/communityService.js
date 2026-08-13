@@ -9,15 +9,12 @@
   window.LH3 = window.LH3 || {};
   window.LH3.services = window.LH3.services || {};
 
-  /** Poste occupé par playerId chez CE manager, ou 'Banc', ou null si absent de son effectif. */
+  /** Poste occupé par playerId chez CE manager (titulaire uniquement), ou null s'il est sur le banc ou absent de l'effectif — le banc n'est pas un "poste de prédilection". */
   function positionForManager(manager, playerId) {
     const idx = manager.squad.starters.indexOf(playerId);
-    if (idx > -1) {
-      const pos = window.LH3.data.positionAtIndex(idx);
-      return pos ? pos.label : null;
-    }
-    if (manager.squad.bench.indexOf(playerId) > -1) return 'Banc';
-    return null; // effectif de ce manager antérieur à l'ajout de ce joueur
+    if (idx === -1) return null;
+    const pos = window.LH3.data.positionAtIndex(idx);
+    return pos ? pos.label : null;
   }
 
   /**

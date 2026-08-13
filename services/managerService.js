@@ -189,6 +189,22 @@
 
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
+  // \p{Diacritic} (plutôt que le classique ̀-ͯ) : évite un bug de
+  // corruption d'encodage récurrent sur cette plage Unicode avec certains
+  // outils d'édition — voir git blame pour l'historique.
+  function normalizeSearch(str) {
+    return String(str).normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+  }
+
+  /** Recherche par mot-clé dans la base de nationalités (voir data/accents.js) — jusqu'à 8 résultats. */
+  function searchAccents(query) {
+    const q = normalizeSearch(query);
+    if (!q) return [];
+    return window.LH3.data.ACCENTS_DB
+      .filter((entry) => entry.keywords.some((k) => normalizeSearch(k).includes(q)))
+      .slice(0, 8);
+  }
+
   function randomCoach(namePlaceholder) {
     return {
       name: namePlaceholder || '',
@@ -203,6 +219,6 @@
 
   window.LH3.services.managerService = {
     getManager, getActiveManager, listManagers, removeManager,
-    updateCoach, randomCoach, defaultSquad, emptyCoach,
+    updateCoach, randomCoach, defaultSquad, emptyCoach, searchAccents,
   };
 })();

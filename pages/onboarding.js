@@ -140,6 +140,15 @@
         return el('div', { className: 'field' }, [el('label', {}, [label]), input]);
       }
 
+      const accentInput = el('input', {
+        type: 'text', placeholder: 'Ex : accent liégeois à couper au couteau', value: coach.accent || '',
+        onInput: (e) => { coach.accent = e.target.value; },
+      });
+      const accentField = el('div', { className: 'field' }, [el('label', {}, ['Accent']), accentInput]);
+      const accentSearch = window.LH3.components.accentSearch.render({
+        onPick: (line) => { coach.accent = line; accentInput.value = line; },
+      });
+
       const finishBtn = el('button', {
         className: 'btn btn-primary btn-block',
         onClick: async () => {
@@ -170,7 +179,8 @@
         renderSteps(1),
         field('name', 'Nom du coach', 'Ex : Coach Robert'),
         field('previousJob', 'Métier précédent', 'Ex : ex-boucher'),
-        field('accent', 'Accent', 'Ex : accent liégeois à couper au couteau'),
+        accentField,
+        accentSearch,
         field('managementStyle', 'Style de management', 'Ex : brutal mais juste'),
         field('quote', 'Citation fétiche', 'Ex : On ne lâche rien, sauf la 3e mi-temps.'),
         field('story', 'Son histoire', 'Quelques mots sur comment il a atterri ici...', true),

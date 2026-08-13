@@ -42,11 +42,21 @@
       return el('div', { className: 'field' }, [el('label', {}, [label]), input]);
     }
 
+    const accentInput = el('input', {
+      type: 'text', value: coach.accent || '',
+      onInput: (e) => { coach.accent = e.target.value; },
+    });
+    const accentField = el('div', { className: 'field' }, [el('label', {}, ['Accent']), accentInput]);
+    const accentSearch = window.LH3.components.accentSearch.render({
+      onPick: (line) => { coach.accent = line; accentInput.value = line; },
+    });
+
     const card = el('div', { className: 'card' }, [
       el('h3', { style: { marginBottom: '14px' } }, ['🧢 Mon coach']),
       field('name', 'Nom'),
       field('previousJob', 'Métier précédent'),
-      field('accent', 'Accent'),
+      accentField,
+      accentSearch,
       field('managementStyle', 'Style de management'),
       field('quote', 'Citation fétiche'),
       field('story', 'Histoire', true),
