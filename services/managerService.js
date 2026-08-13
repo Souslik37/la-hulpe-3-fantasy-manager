@@ -46,6 +46,27 @@
     return Object.values(state.managers).sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  /**
+   * Admin uniquement (voir pages/admin.js + RLS `managers_admin_delete`).
+   * Ne supprime pas le compte de connexion Supabase Auth sous-jacent (ça
+   * demande une clé service_role, jamais exposée côté client) — juste le
+   * profil et tout ce qui en dépend (pronostics, via cascade SQL). Pour
+   * libérer complètement le même nom plus tard, il faut aussi supprimer le
+   * compte dans Supabase → Authentication → Users.
+   */
+  async function removeManager(id) {
+    const state = window.LH3.services.stateService.getState();
+    if (id === state.activeManagerId) {
+      return { ok: false, reason: 'Tu ne peux pas supprimer ton propre profil pendant que tu es connecté avec.' };
+    }
+    const ok = await window.LH3.services.storageService.deleteManager(id);
+    if (!ok) return { ok: false, reason: 'Suppression impossible — vérifie ta connexion et réessaie.' };
+
+    delete state.managers[id];
+    window.LH3.services.stateService.notify();
+    return { ok: true };
+  }
+
   function updateCoach(managerId, coachData) {
     const manager = getManager(managerId);
     if (!manager) return;
@@ -181,7 +202,7 @@
   }
 
   window.LH3.services.managerService = {
-    getManager, getActiveManager, listManagers,
+    getManager, getActiveManager, listManagers, removeManager,
     updateCoach, randomCoach, defaultSquad, emptyCoach,
   };
 })();

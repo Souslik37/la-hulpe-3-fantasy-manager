@@ -239,11 +239,23 @@
     return !error;
   }
 
+  /**
+   * Admin uniquement : supprime un profil manager. Les pronostics liés
+   * partent automatiquement avec lui (foreign key `on delete cascade` dans
+   * schema.sql) — pas besoin d'un appel séparé.
+   */
+  async function deleteManager(id) {
+    const { error } = await client().from('managers').delete().eq('id', id);
+    if (error) console.error('[storageService] échec suppression manager', error);
+    return !error;
+  }
+
   window.LH3.services.storageService = {
     loadInitialState, saveManager, saveManagerProgress, savePredictionRow, saveMatch,
     loadPredictionsForMatch, savePredictionGrading, saveJournalEntries, deleteJournalForMatch,
     deleteJournalEntriesByIds,
     insertPlayer, updatePlayer, deletePlayer,
     updatePresencePeriod, savePresenceRatings,
+    deleteManager,
   };
 })();

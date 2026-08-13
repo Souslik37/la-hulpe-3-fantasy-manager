@@ -107,6 +107,9 @@ alter table presence_periods enable row level security;
 create policy "managers_select_all" on managers for select using (true);
 create policy "managers_insert_own" on managers for insert with check (auth.uid() = id);
 create policy "managers_update_own" on managers for update using (auth.uid() = id);
+create policy "managers_admin_delete" on managers for delete using (
+  exists (select 1 from managers where id = auth.uid() and role = 'admin')
+);
 
 -- Players : lecture publique, écriture réservée à un admin.
 create policy "players_select_all" on players for select using (true);
@@ -153,7 +156,7 @@ create policy "presence_periods_admin_write" on presence_periods for all using (
 grant usage on schema public to anon, authenticated;
 
 grant select on public.managers to anon, authenticated;
-grant insert, update on public.managers to authenticated;
+grant insert, update, delete on public.managers to authenticated;
 
 grant select on public.players to anon, authenticated;
 grant insert, update, delete on public.players to authenticated;

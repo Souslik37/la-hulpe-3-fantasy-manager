@@ -331,21 +331,63 @@
 
     buildPresenceSection(root);
     buildRosterSection(root);
+    buildManagersSection(root);
+  }
 
+  function confirmRemoveManager(manager, rerenderManagers) {
+    window.LH3.components.modal.open({
+      title: 'Supprimer ' + manager.name + ' ?',
+      body: el('div', {}, [
+        el('p', { className: 'small' }, ['Son profil, son équipe et ses pronostics disparaissent définitivement. Il ne pourra plus se reconnecter avec ce nom.']),
+      ]),
+      actions: [
+        { label: 'Annuler', className: 'btn-ghost' },
+        {
+          label: 'Supprimer définitivement',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: async (btn) => {
+            if (btn) { btn.disabled = true; btn.textContent = 'Suppression...'; }
+            const res = await window.LH3.services.managerService.removeManager(manager.id);
+            if (!res.ok) {
+              window.LH3.components.toast.show(res.reason, 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Supprimer définitivement'; }
+              return;
+            }
+            window.LH3.components.toast.show(manager.name + ' supprimé', 'success');
+            window.LH3.components.modal.close();
+            rerenderManagers();
+          },
+        },
+      ],
+    });
+  }
+
+  function buildManagerRow(manager, rerenderManagers) {
+    return el('div', { className: 'boost-row' }, [
+      el('div', { className: 'boost-label' }, [manager.name + (manager.coach && manager.coach.name ? ' (Coach ' + manager.coach.name + ')' : '')]),
+      el('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } }, [
+        el('span', { className: 'muted small' }, [(manager.pe || 0) + ' PE']),
+        el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemoveManager(manager, rerenderManagers) }, ['Supprimer']),
+      ]),
+    ]);
+  }
+
+  function buildManagersSection(root) {
     root.appendChild(el('div', { className: 'section-title' }, ['👥 Managers de la ligue']));
     const managersCard = el('div', { className: 'card' });
-    const managers = window.LH3.services.managerService.listManagers();
-    if (!managers.length) {
-      managersCard.appendChild(el('div', { className: 'muted small' }, ['Aucun manager pour le moment.']));
-    } else {
-      managers.forEach((m) => {
-        managersCard.appendChild(el('div', { className: 'boost-row' }, [
-          el('div', { className: 'boost-label' }, [m.name + (m.coach && m.coach.name ? ' (Coach ' + m.coach.name + ')' : '')]),
-          el('div', { className: 'muted small' }, [(m.pe || 0) + ' PE']),
-        ]));
-      });
-    }
     root.appendChild(managersCard);
+
+    function rerenderManagers() {
+      managersCard.innerHTML = '';
+      const managers = window.LH3.services.managerService.listManagers();
+      if (!managers.length) {
+        managersCard.appendChild(el('div', { className: 'muted small' }, ['Aucun manager pour le moment.']));
+        return;
+      }
+      managers.forEach((m) => managersCard.appendChild(buildManagerRow(m, rerenderManagers)));
+    }
+    rerenderManagers();
   }
 
   window.LH3.pages.admin = { render };
