@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Hulpe 3 — Fantasy Manager</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏉</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="boot-loading" class="onboard-shell">
+  <div class="onboard-logo">🏉</div>
+</div>
+
+<div id="onboarding-root" class="hidden"></div>
+
+<div id="app" class="hidden">
+  <nav id="sidebar" class="sidebar"></nav>
+  <div class="app-main">
+    <header id="topbar" class="topbar"></header>
+    <main id="page-root" class="page-root"></main>
+  </div>
+</div>
+
+<div id="toast-root"></div>
+<div id="modal-root"></div>
+
+<!-- Client Supabase (vendorisé localement, pas de dépendance CDN au runtime) -->
+<script src="vendor/supabase.js"></script>
+
+<!-- Données (aucune dépendance) -->
+<script src="data/config.js"></script>
+<script src="data/positions.js"></script>
+<script src="data/players.js"></script>
+<script src="data/matches.js"></script>
+<script src="data/events.js"></script>
+<script src="data/supabaseConfig.js"></script>
+
+<!-- Utilitaires -->
+<script src="utils/dom.js"></script>
+<script src="utils/format.js"></script>
+<script src="utils/avatar.js"></script>
+<script src="utils/id.js"></script>
+<script src="utils/animate.js"></script>
+
+<!-- Services -->
+<script src="services/authService.js"></script>
+<script src="services/storageService.js"></script>
+<script src="services/stateService.js"></script>
+<script src="services/playerService.js"></script>
+<script src="services/peService.js"></script>
+<script src="services/managerService.js"></script>
+<script src="services/seasonService.js"></script>
+<script src="services/predictionService.js"></script>
+<script src="services/scoringService.js"></script>
+<script src="services/journalService.js"></script>
+<script src="services/communityService.js"></script>
+<script src="services/rosterService.js"></script>
+<script src="services/presenceService.js"></script>
+
+<!-- Composants -->
+<script src="components/toast.js"></script>
+<script src="components/modal.js"></script>
+<script src="components/navbar.js"></script>
+<script src="components/playerCard.js"></script>
+<script src="components/coachCard.js"></script>
+<script src="components/squadPitch.js"></script>
+<script src="components/matchdayCard.js"></script>
+<script src="components/predictionForm.js"></script>
+
+<!-- Pages -->
+<script src="pages/onboarding.js"></script>
+<script src="pages/home.js"></script>
+<script src="pages/myTeam.js"></script>
+<script src="pages/allPlayers.js"></script>
+<script src="pages/calendar.js"></script>
+<script src="pages/predictions.js"></script>
+<script src="pages/standings.js"></script>
+<script src="pages/community.js"></script>
+<script src="pages/statistics.js"></script>
+<script src="pages/journal.js"></script>
+<script src="pages/rules.js"></script>
+<script src="pages/admin.js"></script>
+<script src="pages/settings.js"></script>
+
+<!-- Bootstrap -->
+<script src="script.js"></script>
+</body>
+</html>
