@@ -42,11 +42,26 @@
       return el('div', { className: 'field' }, [el('label', {}, [label]), input]);
     }
 
+    function regenField(key, label, randomFn, isTextarea) {
+      return window.LH3.components.fieldRandom.render({
+        label, value: coach[key], isTextarea,
+        onInput: (v) => { coach[key] = v; },
+        onRandom: () => { coach[key] = randomFn(); return coach[key]; },
+      });
+    }
+
     const accentInput = el('input', {
       type: 'text', value: coach.accent || '',
       onInput: (e) => { coach.accent = e.target.value; },
     });
-    const accentField = el('div', { className: 'field' }, [el('label', {}, ['Accent']), accentInput]);
+    const accentRegenBtn = el('button', {
+      type: 'button', className: 'field-regen-btn', title: 'Régénérer uniquement ce champ',
+      onClick: () => { coach.accent = window.LH3.services.managerService.randomAccent(); accentInput.value = coach.accent; },
+    }, ['↻']);
+    const accentField = el('div', { className: 'field' }, [
+      el('div', { className: 'field-label-row' }, [el('label', {}, ['Accent']), accentRegenBtn]),
+      accentInput,
+    ]);
     const accentSearch = window.LH3.components.accentSearch.render({
       onPick: (line) => { coach.accent = line; accentInput.value = line; },
     });
@@ -54,12 +69,12 @@
     const card = el('div', { className: 'card' }, [
       el('h3', { style: { marginBottom: '14px' } }, ['🧢 Mon coach']),
       field('name', 'Nom'),
-      field('previousJob', 'Métier précédent'),
+      regenField('previousJob', 'Métier précédent', window.LH3.services.managerService.randomJob),
       accentField,
       accentSearch,
-      field('managementStyle', 'Style de management'),
-      field('quote', 'Citation fétiche'),
-      field('story', 'Histoire', true),
+      regenField('managementStyle', 'Style de management', window.LH3.services.managerService.randomManagementStyle),
+      regenField('quote', 'Citation fétiche', window.LH3.services.managerService.randomQuote),
+      regenField('story', 'Histoire', window.LH3.services.managerService.randomStory, true),
       el('div', { style: { display: 'flex', gap: '10px', marginTop: '10px' } }, [
         el('button', {
           className: 'btn',

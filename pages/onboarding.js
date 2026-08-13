@@ -140,11 +140,26 @@
         return el('div', { className: 'field' }, [el('label', {}, [label]), input]);
       }
 
+      function regenField(key, label, placeholder, randomFn, isTextarea) {
+        return window.LH3.components.fieldRandom.render({
+          label, placeholder, value: coach[key], isTextarea,
+          onInput: (v) => { coach[key] = v; },
+          onRandom: () => { coach[key] = randomFn(); return coach[key]; },
+        });
+      }
+
       const accentInput = el('input', {
         type: 'text', placeholder: 'Ex : accent liégeois à couper au couteau', value: coach.accent || '',
         onInput: (e) => { coach.accent = e.target.value; },
       });
-      const accentField = el('div', { className: 'field' }, [el('label', {}, ['Accent']), accentInput]);
+      const accentRegenBtn = el('button', {
+        type: 'button', className: 'field-regen-btn', title: 'Régénérer uniquement ce champ',
+        onClick: () => { coach.accent = window.LH3.services.managerService.randomAccent(); accentInput.value = coach.accent; },
+      }, ['↻']);
+      const accentField = el('div', { className: 'field' }, [
+        el('div', { className: 'field-label-row' }, [el('label', {}, ['Accent']), accentRegenBtn]),
+        accentInput,
+      ]);
       const accentSearch = window.LH3.components.accentSearch.render({
         onPick: (line) => { coach.accent = line; accentInput.value = line; },
       });
@@ -178,12 +193,12 @@
         el('p', { className: 'sub' }, ['Un peu de folklore : le coach n\'a aucun impact sur le jeu, il est juste là pour le fun.']),
         renderSteps(1),
         field('name', 'Nom du coach', 'Ex : Coach Robert'),
-        field('previousJob', 'Métier précédent', 'Ex : ex-boucher'),
+        regenField('previousJob', 'Métier précédent', 'Ex : ex-boucher', window.LH3.services.managerService.randomJob),
         accentField,
         accentSearch,
-        field('managementStyle', 'Style de management', 'Ex : brutal mais juste'),
-        field('quote', 'Citation fétiche', 'Ex : On ne lâche rien, sauf la 3e mi-temps.'),
-        field('story', 'Son histoire', 'Quelques mots sur comment il a atterri ici...', true),
+        regenField('managementStyle', 'Style de management', 'Ex : brutal mais juste', window.LH3.services.managerService.randomManagementStyle),
+        regenField('quote', 'Citation fétiche', 'Ex : On ne lâche rien, sauf la 3e mi-temps.', window.LH3.services.managerService.randomQuote),
+        regenField('story', 'Son histoire', 'Quelques mots sur comment il a atterri ici...', window.LH3.services.managerService.randomStory, true),
         el('button', {
           className: 'btn btn-ghost btn-block', style: { marginBottom: '14px' },
           onClick: () => {

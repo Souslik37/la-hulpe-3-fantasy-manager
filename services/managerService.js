@@ -196,13 +196,18 @@
     return String(str).normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
   }
 
-  /** Recherche par mot-clé dans la base de nationalités (voir data/accents.js) — jusqu'à 8 résultats. */
+  /**
+   * Recherche par mot-clé dans la base de nationalités (voir data/accents.js)
+   * — jusqu'à 10 résultats. Certains pays (France, Belgique, USA...) ont
+   * plusieurs variantes régionales qui partagent le même mot-clé général,
+   * pour toutes les proposer d'un coup plutôt qu'une seule au hasard.
+   */
   function searchAccents(query) {
     const q = normalizeSearch(query);
     if (!q) return [];
     return window.LH3.data.ACCENTS_DB
       .filter((entry) => entry.keywords.some((k) => normalizeSearch(k).includes(q)))
-      .slice(0, 8);
+      .slice(0, 10);
   }
 
   function randomCoach(namePlaceholder) {
@@ -217,8 +222,18 @@
     };
   }
 
+  // Pioche champ par champ (voir components/fieldRandom.js) — mêmes
+  // tableaux que randomCoach, pour que "régénérer juste l'accent" tire
+  // dans le même pool que le bouton "régénérer tout".
+  function randomJob() { return pick(JOBS); }
+  function randomAccent() { return pick(ACCENTS); }
+  function randomStory() { return pick(STORIES); }
+  function randomQuote() { return pick(QUOTES); }
+  function randomManagementStyle() { return pick(STYLES); }
+
   window.LH3.services.managerService = {
     getManager, getActiveManager, listManagers, removeManager,
     updateCoach, randomCoach, defaultSquad, emptyCoach, searchAccents,
+    randomJob, randomAccent, randomStory, randomQuote, randomManagementStyle,
   };
 })();
