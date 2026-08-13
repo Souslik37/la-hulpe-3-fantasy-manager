@@ -11,7 +11,7 @@
   window.LH3 = window.LH3 || {};
   window.LH3.pages = window.LH3.pages || {};
 
-  const { el, escapeHtml } = window.LH3.utils.dom;
+  const { el } = window.LH3.utils.dom;
 
   let currentMatchday = null; // numéro de journée affiché ; null = pas encore initialisé
 
@@ -72,7 +72,7 @@
   function buildLockedView(match) {
     return el('div', { className: 'card empty-state' }, [
       el('div', { className: 'ic' }, ['🔒']),
-      el('h2', { style: { fontSize: '17px', fontWeight: '800', marginBottom: '6px' } }, ['La Hulpe 3 vs ' + escapeHtml(match.opponent)]),
+      el('h2', { style: { fontSize: '17px', fontWeight: '800', marginBottom: '6px' } }, ['La Hulpe 3 vs ' + match.opponent]),
       el('div', {}, [window.LH3.utils.format.formatDateFr(match.date)]),
       el('div', { className: 'muted small', style: { marginTop: '10px' } }, ['Cette journée n\'est pas encore ouverte aux pronostics — reviens un peu plus tard.']),
     ]);
@@ -84,7 +84,7 @@
     return el('div', { className: 'card' }, [
       el('div', { style: { textAlign: 'center', marginBottom: '14px' } }, [
         el('div', { className: 'badge' }, ['Journée ' + match.matchday + ' · ' + window.LH3.utils.format.formatDateFr(match.date)]),
-        el('h2', { style: { fontSize: '19px', fontWeight: '800', marginTop: '8px' } }, ['La Hulpe 3 vs ' + escapeHtml(match.opponent)]),
+        el('h2', { style: { fontSize: '19px', fontWeight: '800', marginTop: '8px' } }, ['La Hulpe 3 vs ' + match.opponent]),
         el('div', { className: 'recap-score', style: { marginTop: '8px' } }, [match.result.scoreFor + ' – ' + match.result.scoreAgainst]),
         breakdown
           ? el('div', { className: 'badge ' + peBadgeClass(breakdown.peEarned), style: { marginTop: '10px' } }, [formatSigned(breakdown.peEarned) + ' PE sur cette journée'])

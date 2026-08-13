@@ -5,7 +5,7 @@
   window.LH3 = window.LH3 || {};
   window.LH3.components = window.LH3.components || {};
 
-  const { el, clear, escapeHtml } = window.LH3.utils.dom;
+  const { el, clear } = window.LH3.utils.dom;
 
   function close() {
     const root = document.getElementById('modal-root');
@@ -38,7 +38,7 @@
 
     const box = el('div', { className: 'modal-box' }, [
       el('div', { className: 'modal-head' }, [
-        el('h2', {}, [escapeHtml(opts.title || '')]),
+        el('h2', {}, [opts.title || '']),
         el('button', { className: 'modal-close', onClick: close }, ['✕']),
       ]),
       bodyWrap,

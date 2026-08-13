@@ -57,7 +57,7 @@
   }
 
   function renderTopbar(currentKey) {
-    const { el, escapeHtml } = window.LH3.utils.dom;
+    const { el } = window.LH3.utils.dom;
     const topbar = document.getElementById('topbar');
     topbar.innerHTML = '';
 
@@ -70,7 +70,7 @@
     if (manager) {
       const prestige = window.LH3.services.peService.prestigeInfo(manager);
       right.appendChild(el('div', { className: 'pe-chip' }, ['✨ ' + (manager.pe || 0) + ' PE']));
-      right.appendChild(el('div', { className: 'prestige-chip' }, ['🎖️ ' + escapeHtml(prestige.name)]));
+      right.appendChild(el('div', { className: 'prestige-chip' }, ['🎖️ ' + prestige.name]));
       right.appendChild(el('div', {
         className: 'manager-pill',
         onClick: () => { window.location.hash = '#settings'; },

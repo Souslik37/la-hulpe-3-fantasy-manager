@@ -44,7 +44,7 @@
       el('div', { style: { textAlign: 'center', marginBottom: '14px' } }, [
         el('div', { style: { fontSize: '13px', color: 'var(--text-2)' } }, ['La Hulpe 3 vs ' + match.opponent]),
         el('div', { style: { fontSize: '30px', fontWeight: '900' } }, [match.result.scoreFor + ' – ' + match.result.scoreAgainst]),
-        match.result.manOfMatchId ? el('div', { className: 'badge badge-yellow', style: { marginTop: '8px' } }, ['⭐ Homme du match : ' + escapeHtml(getPlayerName(match.result.manOfMatchId))]) : null,
+        match.result.manOfMatchId ? el('div', { className: 'badge badge-yellow', style: { marginTop: '8px' } }, ['⭐ Homme du match : ' + getPlayerName(match.result.manOfMatchId)]) : null,
       ]),
       !hasPrediction
         ? el('div', { className: 'muted small center' }, ['Tu n\'avais pas soumis de pronostic pour cette journée.'])

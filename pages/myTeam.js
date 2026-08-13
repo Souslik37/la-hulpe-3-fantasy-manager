@@ -170,6 +170,49 @@
     });
   }
 
+  /** Détail des sources des points d'un manager — pourquoi le total est ce qu'il est. */
+  function openPointsBreakdownModal(manager) {
+    const { formatSigned, peBadgeClass } = window.LH3.utils.format;
+    const CONFIG = window.LH3.data.CONFIG;
+    const playerService = window.LH3.services.playerService;
+    const spent = playerService.pointsSpent(manager);
+
+    const rows = [];
+    window.LH3.services.seasonService.listMatches().forEach((match) => {
+      const breakdown = manager.predictionResults && manager.predictionResults[match.id];
+      if (!breakdown || !breakdown.peEarned) return;
+      rows.push({ label: 'Match contre ' + match.opponent + ' (J' + match.matchday + ')', pe: breakdown.peEarned });
+    });
+    window.LH3.services.presenceService.listPeriods().forEach((period) => {
+      const rating = window.LH3.services.presenceService.ratingForManager(period, manager.id);
+      if (!rating) return;
+      rows.push({ label: 'Assiduité — ' + period.label, pe: rating.pe });
+    });
+
+    const body = el('div', {}, [
+      el('div', { className: 'boost-row' }, [
+        el('div', { className: 'boost-label' }, ['Points de départ']),
+        el('div', { className: 'badge' }, ['+' + CONFIG.season.startingPoints]),
+      ]),
+      ...rows.map((r) => el('div', { className: 'boost-row' }, [
+        el('div', { className: 'boost-label' }, [r.label]),
+        el('div', { className: 'badge ' + peBadgeClass(r.pe) }, [formatSigned(r.pe) + ' PE']),
+      ])),
+      spent > 0 ? el('div', { className: 'boost-row' }, [
+        el('div', { className: 'boost-label' }, ['Déjà investi dans tes joueurs']),
+        el('div', { className: 'badge ' + peBadgeClass(-spent) }, [formatSigned(-spent)]),
+      ]) : null,
+      el('div', { className: 'badge', style: { marginTop: '14px', display: 'block', textAlign: 'center', padding: '10px' } }, [
+        String(playerService.pointsRemaining(manager)) + ' points restants'
+      ]),
+      manager.pe < 0 ? el('p', { className: 'muted small', style: { marginTop: '10px' } }, [
+        'Ton total de PE est actuellement négatif (visible seulement au classement) — ça n\'a pas entamé ton socle de points de départ, déjà acquis pour toujours.',
+      ]) : null,
+    ]);
+
+    window.LH3.components.modal.open({ title: 'D\'où viennent tes points ?', body, actions: [{ label: 'Fermer', className: 'btn-primary' }] });
+  }
+
   function buildAttributesTab(manager, rerender) {
     const playerService = window.LH3.services.playerService;
     const remaining = playerService.pointsRemaining(manager);
@@ -177,16 +220,17 @@
     const spent = playerService.pointsSpent(manager);
 
     const summary = el('div', { className: 'card', style: { marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' } }, [
-      el('div', { className: 'boost-points-card' }, [
+      el('div', { className: 'boost-points-card clickable', onClick: () => openPointsBreakdownModal(manager) }, [
         el('div', { className: 'boost-points-n' }, [String(remaining)]),
         el('div', { className: 'boost-points-l' }, ['Points restants']),
+        el('div', { className: 'boost-points-hint' }, ['Détail →']),
       ]),
       el('div', { style: { flex: '1', minWidth: '200px' } }, [
         el('div', { className: 'boost-bar-track' }, [
           el('div', { className: 'boost-bar-fill', style: { width: Math.min(100, (spent / available) * 100) + '%' } }),
         ]),
         el('div', { className: 'muted small', style: { marginTop: '8px' } }, [
-          spent + ' points dépensés sur ' + available + ' disponibles (500 de départ + bonus PE).',
+          spent + ' points dépensés sur ' + available + ' disponibles (' + window.LH3.data.CONFIG.season.startingPoints + ' de départ + bonus PE).',
         ]),
       ]),
       spent > 0 ? el('button', {

@@ -480,8 +480,11 @@ textarea { resize: vertical; min-height: 70px; }
    ============================================================ */
 .boost-layout { display: grid; grid-template-columns: 220px 1fr; gap: 26px; }
 .boost-points-card { text-align: center; }
+.boost-points-card.clickable { cursor: pointer; }
 .boost-points-n { font-size: 36px; font-weight: 900; color: var(--green-text); }
 .boost-points-l { font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; font-weight: 650; }
+.boost-points-hint { font-size: 11px; color: var(--green-text); font-weight: 650; margin-top: 4px; }
+.boost-points-card.clickable:hover .boost-points-hint { text-decoration: underline; }
 .boost-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 0;

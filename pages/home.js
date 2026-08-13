@@ -5,7 +5,7 @@
   window.LH3 = window.LH3 || {};
   window.LH3.pages = window.LH3.pages || {};
 
-  const { el, escapeHtml } = window.LH3.utils.dom;
+  const { el } = window.LH3.utils.dom;
 
   function computeTeamOverall(manager) {
     const playerService = window.LH3.services.playerService;
@@ -186,7 +186,7 @@
 
     root.innerHTML = '';
     root.appendChild(el('div', { className: 'page-header' }, [
-      el('h1', {}, ['Salut, ' + escapeHtml(manager.name) + ' 👋']),
+      el('h1', {}, ['Salut, ' + manager.name + ' 👋']),
       el('p', {}, ['Voici où en est ton aventure avec le club cette saison.']),
     ]));
 
