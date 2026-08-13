@@ -23,6 +23,7 @@
       squad: row.squad || {},
       pe: row.pe || 0,
       history: row.history || [],
+      funPoints: row.fun_points || 0,
       predictions: {}, // rempli séparément depuis la table predictions
       predictionResults: {}, // idem (breakdown/pe_earned)
       createdAt: row.created_at,
@@ -56,6 +57,10 @@
     return { id: row.id, label: row.label, date: row.date, ratings: row.ratings || {} };
   }
 
+  function clubEventRowToApp(row) {
+    return { id: row.id, title: row.title, icon: row.icon, date: row.date, amount: row.amount, recipientIds: row.recipient_ids || [] };
+  }
+
   /**
    * Charge tout ce dont l'app a besoin pour démarrer : roster, calendrier,
    * journal, tous les managers (classement/journal), et les pronostics du
@@ -64,16 +69,17 @@
    * noter une journée — voir scoringService.gradeAllPredictionsForMatch).
    */
   async function loadInitialState(activeManagerId) {
-    const [playersRes, matchesRes, journalRes, managersRes, predictionsRes, presenceRes] = await Promise.all([
+    const [playersRes, matchesRes, journalRes, managersRes, predictionsRes, presenceRes, eventsRes] = await Promise.all([
       client().from('players').select('*'),
       client().from('matches').select('*').order('matchday'),
       client().from('journal').select('*').order('created_at', { ascending: false }),
       client().from('managers').select('*'),
       client().from('predictions').select('*').eq('manager_id', activeManagerId),
       client().from('presence_periods').select('*').order('date'),
+      client().from('club_events').select('*').order('date'),
     ]);
 
-    for (const res of [playersRes, matchesRes, journalRes, managersRes, predictionsRes, presenceRes]) {
+    for (const res of [playersRes, matchesRes, journalRes, managersRes, predictionsRes, presenceRes, eventsRes]) {
       if (res.error) throw res.error;
     }
 
@@ -101,6 +107,7 @@
       activeManagerId,
       journal: journalRes.data.map(journalRowToApp),
       presencePeriods: presenceRes.data.map(presencePeriodRowToApp),
+      clubEvents: eventsRes.data.map(clubEventRowToApp),
       meta: { createdAt: new Date().toISOString() },
     };
   }
@@ -187,6 +194,30 @@
   async function savePresenceRatings(periodId, ratings) {
     const { error } = await client().from('presence_periods').update({ ratings }).eq('id', periodId);
     if (error) console.error('[storageService] échec sauvegarde notations assiduité', error);
+    return !error;
+  }
+
+  /** Admin uniquement : écrit le compteur "Points Fun" d'UN manager (événements du club). */
+  async function saveManagerFunPoints(managerId, funPoints) {
+    const { error } = await client().from('managers').update({ fun_points: funPoints }).eq('id', managerId);
+    if (error) console.error('[storageService] échec sauvegarde points fun', error);
+    return !error;
+  }
+
+  /** Admin uniquement : crée un événement du club. */
+  async function insertClubEvent(event) {
+    const { error } = await client().from('club_events').insert({
+      id: event.id, title: event.title, icon: event.icon, date: event.date,
+      amount: event.amount, recipient_ids: event.recipientIds,
+    });
+    if (error) console.error('[storageService] échec création événement', error);
+    return !error;
+  }
+
+  /** Admin uniquement : annule/retire un événement du club. */
+  async function deleteClubEvent(id) {
+    const { error } = await client().from('club_events').delete().eq('id', id);
+    if (error) console.error('[storageService] échec suppression événement', error);
     return !error;
   }
 
@@ -291,5 +322,6 @@
     deleteManager,
     insertMatch, deleteMatch,
     insertPresencePeriod, deletePresencePeriod,
+    saveManagerFunPoints, insertClubEvent, deleteClubEvent,
   };
 })();

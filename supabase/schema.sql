@@ -28,6 +28,7 @@ create table managers (
   squad jsonb not null default '{}'::jsonb,
   pe integer not null default 0,
   history jsonb not null default '[]'::jsonb,
+  fun_points integer not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -89,6 +90,22 @@ create table presence_periods (
   ratings jsonb not null default '{}'::jsonb
 );
 
+-- ── Événements du club (bonus ponctuels, purement fun) ──────────────────────
+-- Complètement séparés des PE : ne comptent ni pour le classement, ni pour
+-- le budget d'attributs — juste un compteur "Points Fun" pour le folklore
+-- (ex : "Braderie de La Hulpe", "Cadeau du président"). `recipient_ids`
+-- fige QUI a reçu le bonus au moment de la création (un manager qui
+-- rejoint plus tard n'en profite pas rétroactivement), ce qui permet une
+-- annulation exacte, symétrique à Assiduité/Calendrier.
+create table club_events (
+  id text primary key,
+  title text not null,
+  icon text not null default '🎉',
+  date date not null,
+  amount integer not null,
+  recipient_ids uuid[] not null default '{}'::uuid[]
+);
+
 -- ============================================================
 -- Row Level Security — chacun ne peut modifier QUE ses propres
 -- données ; le calendrier/roster/journal ne sont modifiables que
@@ -101,6 +118,7 @@ alter table matches enable row level security;
 alter table predictions enable row level security;
 alter table journal enable row level security;
 alter table presence_periods enable row level security;
+alter table club_events enable row level security;
 
 -- Managers : tout le monde peut lire tout le monde (classement, capitaine
 -- fétiche...), mais chacun ne modifie que sa propre ligne.
@@ -146,6 +164,12 @@ create policy "presence_periods_admin_write" on presence_periods for all using (
   exists (select 1 from managers where id = auth.uid() and role = 'admin')
 );
 
+-- Événements du club : lecture publique, écriture réservée à un admin.
+create policy "club_events_select_all" on club_events for select using (true);
+create policy "club_events_admin_write" on club_events for all using (
+  exists (select 1 from managers where id = auth.uid() and role = 'admin')
+);
+
 -- ============================================================
 -- Droits Postgres de base — SÉPARÉS des règles RLS ci-dessus. RLS filtre
 -- QUELLES lignes sont visibles/modifiables, mais le rôle doit d'abord avoir
@@ -171,6 +195,9 @@ grant insert, delete on public.journal to authenticated;
 
 grant select on public.presence_periods to anon, authenticated;
 grant insert, update, delete on public.presence_periods to authenticated;
+
+grant select on public.club_events to anon, authenticated;
+grant insert, update, delete on public.club_events to authenticated;
 
 -- ============================================================
 -- Roster de base des 31 joueurs (identique à data/players.js, tous les

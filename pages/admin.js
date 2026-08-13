@@ -358,6 +358,111 @@
     ]);
   }
 
+  // ── Événements du club (bonus fun ponctuels, séparés des PE) ────────────
+  function openCreateEventModal(rerenderEvents) {
+    const titleInput = el('input', { type: 'text', placeholder: 'Ex : Braderie de La Hulpe' });
+    const iconInput = el('input', { type: 'text', placeholder: '🎉 (optionnel)' });
+    const amountInput = el('input', { type: 'number', min: '1', placeholder: 'Ex : 100' });
+    const dateInput = el('input', { type: 'date' });
+    dateInput.valueAsDate = new Date();
+
+    const modal = window.LH3.components.modal.open({
+      title: 'Créer un événement',
+      body: el('div', {}, [
+        el('div', { className: 'field' }, [el('label', {}, ['Nom de l\'événement']), titleInput]),
+        el('div', { className: 'field' }, [el('label', {}, ['Icône']), iconInput]),
+        el('div', { className: 'field' }, [el('label', {}, ['Points Fun offerts à chaque manager']), amountInput]),
+        el('div', { className: 'field' }, [el('label', {}, ['Date']), dateInput]),
+        el('div', { className: 'field-hint' }, ['Complètement séparé des PE : aucun impact sur le classement ni sur le budget d\'attributs, juste pour le fun.']),
+      ]),
+      actions: [
+        { label: 'Annuler', className: 'btn-ghost' },
+        {
+          label: 'Créer et distribuer',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: async (btn) => {
+            if (btn) { btn.disabled = true; btn.textContent = 'Distribution en cours...'; }
+            const res = await window.LH3.services.eventService.createEvent({
+              title: titleInput.value, icon: iconInput.value, amount: amountInput.value, date: dateInput.value,
+            });
+            if (!res.ok) {
+              window.LH3.components.toast.show(res.reason, 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Créer et distribuer'; }
+              return;
+            }
+            window.LH3.components.toast.show('Événement créé, Points Fun distribués ✅', 'success');
+            window.LH3.components.modal.close();
+            rerenderEvents();
+          },
+        },
+      ],
+    });
+    return modal;
+  }
+
+  function confirmRemoveEvent(event, rerenderEvents) {
+    window.LH3.components.modal.open({
+      title: 'Annuler "' + event.title + '" ?',
+      body: el('div', {}, [
+        el('p', { className: 'small' }, ['Les ' + event.amount + ' Points Fun distribués sont repris à tout le monde, et l\'événement disparaît du journal.']),
+      ]),
+      actions: [
+        { label: 'Annuler', className: 'btn-ghost' },
+        {
+          label: 'Confirmer l\'annulation',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: async (btn) => {
+            if (btn) { btn.disabled = true; btn.textContent = 'Annulation...'; }
+            const res = await window.LH3.services.eventService.removeEvent(event.id);
+            if (!res.ok) {
+              window.LH3.components.toast.show(res.reason, 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Confirmer l\'annulation'; }
+              return;
+            }
+            window.LH3.components.toast.show('Événement annulé', 'success');
+            window.LH3.components.modal.close();
+            rerenderEvents();
+          },
+        },
+      ],
+    });
+  }
+
+  function buildEventRow(event, rerenderEvents) {
+    return el('div', { className: 'card', style: { display: 'grid', gridTemplateColumns: '40px 1.4fr 1fr auto auto', gap: '10px', alignItems: 'center', padding: '12px 16px', marginBottom: '8px' } }, [
+      el('div', { style: { fontSize: '22px', textAlign: 'center' } }, [event.icon]),
+      el('div', { style: { fontWeight: '750' } }, [event.title]),
+      el('div', { className: 'muted small' }, [window.LH3.utils.format.formatDateFr(event.date)]),
+      el('span', { className: 'badge badge-green' }, ['+' + event.amount + ' Points Fun']),
+      el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemoveEvent(event, rerenderEvents) }, ['Annuler']),
+    ]);
+  }
+
+  function buildEventsSection(root) {
+    root.appendChild(el('div', { className: 'section-title' }, [
+      '🎉 Événements du club',
+      el('span', { className: 'see-all', onClick: () => openCreateEventModal(rerenderEvents) }, ['+ Créer un événement']),
+    ]));
+    root.appendChild(el('p', { className: 'muted small', style: { marginBottom: '10px' } }, [
+      'Bonus ponctuels et purement fun, quand tu veux — complètement séparés des PE, aucun impact sur le classement ni les attributs.',
+    ]));
+    const list = el('div', {});
+    root.appendChild(list);
+
+    function rerenderEvents() {
+      list.innerHTML = '';
+      const events = window.LH3.services.eventService.listEvents();
+      if (!events.length) {
+        list.appendChild(el('div', { className: 'muted small' }, ['Aucun événement pour le moment.']));
+        return;
+      }
+      events.forEach((e) => list.appendChild(buildEventRow(e, rerenderEvents)));
+    }
+    rerenderEvents();
+  }
+
   function buildPresenceSection(root) {
     root.appendChild(el('div', { className: 'section-title' }, [
       '🙌 Assiduité',
@@ -515,6 +620,7 @@
     }
     rerender();
 
+    buildEventsSection(root);
     buildPresenceSection(root);
     buildRosterSection(root);
     buildManagersSection(root);

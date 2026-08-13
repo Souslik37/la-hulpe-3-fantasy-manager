@@ -99,6 +99,16 @@
     ]));
 
     root.appendChild(el('div', { className: 'card', style: { marginBottom: '18px' } }, [
+      el('h3', { style: { marginBottom: '10px' } }, ['🎉 Événements du club']),
+      el('p', { className: 'small', style: { lineHeight: '1.6' } }, [
+        'De temps en temps, l\'admin surprend tout le monde avec un bonus fun — genre "Braderie de La Hulpe" ou "Cadeau du président". Chacun reçoit alors des ',
+        el('b', {}, ['Points Fun']),
+        '. Ils n\'ont ', el('b', {}, ['aucun rapport avec les PE']),
+        ' : pas de conversion, pas d\'effet sur le classement, pas d\'effet sur le budget d\'attributs — un compteur à part, juste pour le folklore du club.',
+      ]),
+    ]));
+
+    root.appendChild(el('div', { className: 'card', style: { marginBottom: '18px' } }, [
       el('h3', { style: { marginBottom: '10px' } }, ['🧮 Points d\'attributs']),
       el('p', { className: 'small', style: { lineHeight: '1.6' } }, [
         'Chaque manager démarre avec ' + CONFIG.season.startingPoints + ' points à répartir librement sur les attributs de ses joueurs ',
