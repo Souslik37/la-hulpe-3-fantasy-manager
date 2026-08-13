@@ -135,7 +135,48 @@
     return { ok: true };
   }
 
+  /** Admin uniquement : ajoute une période d'assiduité au calendrier. */
+  async function addPeriod({ label, date }) {
+    label = (label || '').trim();
+    if (!label) return { ok: false, reason: 'Choisis un nom pour cette période.' };
+    if (!date) return { ok: false, reason: 'Renseigne une date.' };
+
+    const period = { id: window.LH3.utils.id.uid('presence'), label, date, ratings: {} };
+    const ok = await window.LH3.services.storageService.insertPresencePeriod(period);
+    if (!ok) return { ok: false, reason: 'Écriture impossible — vérifie ta connexion et réessaie.' };
+
+    const state = window.LH3.services.stateService.getState();
+    state.presencePeriods = state.presencePeriods || [];
+    state.presencePeriods.push(period);
+    window.LH3.services.stateService.notify();
+    return { ok: true, period };
+  }
+
+  /**
+   * Admin uniquement : retire une période d'assiduité. Si elle avait déjà
+   * été évaluée, on reprend d'abord les PE distribués (voir resetPeriod)
+   * pour qu'ils ne restent pas acquis alors que la période disparaît.
+   */
+  async function removePeriod(id) {
+    const period = getPeriod(id);
+    if (!period) return { ok: false, reason: 'Période introuvable.' };
+
+    if (Object.keys(period.ratings || {}).length > 0) {
+      const undoRes = await resetPeriod(id);
+      if (!undoRes.ok) return undoRes;
+    }
+
+    const ok = await window.LH3.services.storageService.deletePresencePeriod(id);
+    if (!ok) return { ok: false, reason: 'Suppression impossible — vérifie ta connexion et réessaie.' };
+
+    const state = window.LH3.services.stateService.getState();
+    state.presencePeriods = (state.presencePeriods || []).filter((p) => p.id !== id);
+    window.LH3.services.stateService.notify();
+    return { ok: true };
+  }
+
   window.LH3.services.presenceService = {
     listPeriods, getPeriod, tierInfo, ratingForManager, updatePeriodInfo, evaluatePeriod, resetPeriod,
+    addPeriod, removePeriod,
   };
 })();

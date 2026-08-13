@@ -190,6 +190,22 @@
     return !error;
   }
 
+  /** Admin uniquement : ajoute une période d'assiduité. */
+  async function insertPresencePeriod(period) {
+    const { error } = await client().from('presence_periods').insert({
+      id: period.id, label: period.label, date: period.date, ratings: period.ratings || {},
+    });
+    if (error) console.error('[storageService] échec ajout période d\'assiduité', error);
+    return !error;
+  }
+
+  /** Admin uniquement : retire une période d'assiduité. */
+  async function deletePresencePeriod(id) {
+    const { error } = await client().from('presence_periods').delete().eq('id', id);
+    if (error) console.error('[storageService] échec suppression période d\'assiduité', error);
+    return !error;
+  }
+
   /** Admin uniquement : récupère TOUS les pronostics d'une journée (pour noter). */
   async function loadPredictionsForMatch(matchId) {
     const { data, error } = await client().from('predictions').select('*').eq('match_id', matchId);
@@ -274,5 +290,6 @@
     updatePresencePeriod, savePresenceRatings,
     deleteManager,
     insertMatch, deleteMatch,
+    insertPresencePeriod, deletePresencePeriod,
   };
 })();

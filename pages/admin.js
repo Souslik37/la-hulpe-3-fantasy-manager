@@ -265,6 +265,74 @@
     });
   }
 
+  function confirmRemovePeriod(period, rerenderPresence) {
+    const evaluated = Object.keys(period.ratings || {}).length > 0;
+    window.LH3.components.modal.open({
+      title: 'Supprimer "' + period.label + '" ?',
+      body: el('div', {}, [
+        el('p', { className: 'small' }, [
+          evaluated
+            ? 'Cette période était déjà distribuée : les PE sont repris à tout le monde avant suppression.'
+            : 'Cette période d\'assiduité disparaît définitivement du calendrier.',
+        ]),
+      ]),
+      actions: [
+        { label: 'Annuler', className: 'btn-ghost' },
+        {
+          label: 'Supprimer définitivement',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: async (btn) => {
+            if (btn) { btn.disabled = true; btn.textContent = 'Suppression...'; }
+            const res = await window.LH3.services.presenceService.removePeriod(period.id);
+            if (!res.ok) {
+              window.LH3.components.toast.show(res.reason, 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Supprimer définitivement'; }
+              return;
+            }
+            window.LH3.components.toast.show('Période supprimée', 'success');
+            window.LH3.components.modal.close();
+            rerenderPresence();
+          },
+        },
+      ],
+    });
+  }
+
+  function openAddPeriodModal(rerenderPresence) {
+    const labelInput = el('input', { type: 'text', placeholder: 'Ex : Fin novembre' });
+    const dateInput = el('input', { type: 'date' });
+
+    const modal = window.LH3.components.modal.open({
+      title: 'Ajouter une période d\'assiduité',
+      body: el('div', {}, [
+        el('div', { className: 'field' }, [el('label', {}, ['Nom de la période']), labelInput]),
+        el('div', { className: 'field' }, [el('label', {}, ['Date']), dateInput]),
+      ]),
+      actions: [
+        { label: 'Annuler', className: 'btn-ghost' },
+        {
+          label: 'Ajouter',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: async (btn) => {
+            if (btn) { btn.disabled = true; btn.textContent = 'Ajout en cours...'; }
+            const res = await window.LH3.services.presenceService.addPeriod({ label: labelInput.value, date: dateInput.value });
+            if (!res.ok) {
+              window.LH3.components.toast.show(res.reason, 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Ajouter'; }
+              return;
+            }
+            window.LH3.components.toast.show('Période ajoutée ✅', 'success');
+            window.LH3.components.modal.close();
+            rerenderPresence();
+          },
+        },
+      ],
+    });
+    return modal;
+  }
+
   function buildPresenceRow(period, rerenderPresence) {
     const labelInput = el('input', {
       type: 'text', value: period.label,
@@ -276,17 +344,25 @@
     });
     const evaluated = Object.keys(period.ratings || {}).length > 0;
 
-    return el('div', { className: 'card', style: { display: 'grid', gridTemplateColumns: '1.4fr 1fr auto auto auto', gap: '10px', alignItems: 'center', padding: '12px 16px', marginBottom: '8px' } }, [
+    const actions = [el('button', { className: 'btn btn-sm', onClick: () => openEvaluatePeriodModal(period, rerenderPresence) }, [evaluated ? 'Ré-évaluer' : 'Évaluer'])];
+    if (evaluated) {
+      actions.push(el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmResetPeriod(period, rerenderPresence) }, ['Réinitialiser']));
+    }
+    actions.push(el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemovePeriod(period, rerenderPresence) }, ['Supprimer']));
+
+    return el('div', { className: 'card', style: { display: 'grid', gridTemplateColumns: '1.4fr 1fr auto auto', gap: '10px', alignItems: 'center', padding: '12px 16px', marginBottom: '8px' } }, [
       labelInput,
       dateInput,
       el('span', { className: 'badge' + (evaluated ? ' badge-green' : '') }, [evaluated ? '✅ Distribué' : '🔜 À venir']),
-      el('button', { className: 'btn btn-sm', onClick: () => openEvaluatePeriodModal(period, rerenderPresence) }, [evaluated ? 'Ré-évaluer' : 'Évaluer']),
-      evaluated ? el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmResetPeriod(period, rerenderPresence) }, ['Réinitialiser']) : null,
+      el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' } }, actions),
     ]);
   }
 
   function buildPresenceSection(root) {
-    root.appendChild(el('div', { className: 'section-title' }, ['🙌 Assiduité']));
+    root.appendChild(el('div', { className: 'section-title' }, [
+      '🙌 Assiduité',
+      el('span', { className: 'see-all', onClick: () => openAddPeriodModal(rerenderPresence) }, ['+ Ajouter une période']),
+    ]));
     root.appendChild(el('p', { className: 'muted small', style: { marginBottom: '10px' } }, [
       'Bonus de présence aux entraînements, distribué par période — jamais de pénalité, juste un petit plus pour ceux qui viennent.',
     ]));
