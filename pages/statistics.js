@@ -60,7 +60,7 @@
     });
 
     return el('div', { className: 'card' }, [
-      el('div', { className: 'widget-head' }, [el('span', { className: 'ic' }, ['🧬']), 'Répartition moyenne des attributs (31 joueurs)']),
+      el('div', { className: 'widget-head' }, [el('span', { className: 'ic' }, ['🧬']), 'Répartition moyenne des attributs (' + cards.length + ' joueurs)']),
       chart,
     ]);
   }
