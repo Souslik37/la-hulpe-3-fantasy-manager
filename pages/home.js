@@ -59,7 +59,6 @@
       { ic: '🎖️', n: prestige.name, l: 'Rang prestige' },
       { ic: '📊', n: '#' + rank.rank + ' / ' + rank.total, l: 'Classement actuel' },
       { ic: '🧮', n: playerService.pointsRemaining(manager), l: 'Points à répartir', animate: true },
-      { ic: '🎉', n: manager.funPoints || 0, l: 'Points Fun', animate: true },
     ];
 
     const wrap = el('div', { className: 'stat-tiles' });

@@ -23,8 +23,6 @@
       squad: row.squad || {},
       pe: row.pe || 0,
       history: row.history || [],
-      funPoints: row.fun_points || 0,
-      attributeReserved: row.attribute_reserved || {},
       predictions: {}, // rempli séparément depuis la table predictions
       predictionResults: {}, // idem (breakdown/pe_earned)
       createdAt: row.created_at,
@@ -201,20 +199,6 @@
     return !error;
   }
 
-  /** Admin uniquement : écrit le compteur "Points Fun" d'UN manager (événements du club). */
-  async function saveManagerFunPoints(managerId, funPoints) {
-    const { error } = await client().from('managers').update({ fun_points: funPoints }).eq('id', managerId);
-    if (error) console.error('[storageService] échec sauvegarde points fun', error);
-    return !error;
-  }
-
-  /** Admin uniquement : écrit les PE réservés par attribut d'UN manager (événements ciblés). */
-  async function saveManagerAttributeReserved(managerId, attributeReserved) {
-    const { error } = await client().from('managers').update({ attribute_reserved: attributeReserved }).eq('id', managerId);
-    if (error) console.error('[storageService] échec sauvegarde PE réservés', error);
-    return !error;
-  }
-
   /** Admin uniquement : crée un événement du club. */
   async function insertClubEvent(event) {
     const { error } = await client().from('club_events').insert({
@@ -333,6 +317,6 @@
     deleteManager,
     insertMatch, deleteMatch,
     insertPresencePeriod, deletePresencePeriod,
-    saveManagerFunPoints, saveManagerAttributeReserved, insertClubEvent, deleteClubEvent,
+    insertClubEvent, deleteClubEvent,
   };
 })();

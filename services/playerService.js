@@ -91,45 +91,8 @@
     return CONFIG().season.startingPoints + Math.max(0, manager.pe || 0);
   }
 
-  /** Somme des boosts posés sur UN attribut précis, tous joueurs confondus. */
-  function spentOnAttribute(manager, attrKey) {
-    const boosts = manager.playerBoosts || {};
-    let total = 0;
-    Object.values(boosts).forEach((attrs) => { total += attrs[attrKey] || 0; });
-    return total;
-  }
-
-  function reservedFor(manager, attrKey) {
-    return (manager.attributeReserved && manager.attributeReserved[attrKey]) || 0;
-  }
-
-  /**
-   * PE reçu via un événement ciblé sur `attrKey` (voir eventService) mais pas
-   * encore investi dessus. Purement dérivé (jamais décrémenté à la dépense)
-   * — la réserve d'origine reste la trace de ce que l'événement a donné.
-   */
-  function unspentReserved(manager, attrKey) {
-    return Math.max(0, reservedFor(manager, attrKey) - spentOnAttribute(manager, attrKey));
-  }
-
-  function totalUnspentReserved(manager) {
-    return Object.keys(manager.attributeReserved || {})
-      .reduce((sum, key) => sum + unspentReserved(manager, key), 0);
-  }
-
-  /**
-   * Solde libre, utilisable sur N'IMPORTE QUEL attribut. Les PE réservés pas
-   * encore investis sur leur attribut cible sont mis de côté ici (voir
-   * pointsRemainingFor pour le plafond réel d'un attribut précis) — même PE,
-   * même total quelque part (manager.pe), juste pas encore "libéré".
-   */
   function pointsRemaining(manager) {
-    return pointsAvailable(manager) - pointsSpent(manager) - totalUnspentReserved(manager);
-  }
-
-  /** Plafond réel pour booster `attrKey` précisément : solde libre + réserve dédiée à cet attribut. */
-  function pointsRemainingFor(manager, attrKey) {
-    return pointsRemaining(manager) + unspentReserved(manager, attrKey);
+    return pointsAvailable(manager) - pointsSpent(manager);
   }
 
   /**
@@ -153,7 +116,7 @@
       return { ok: false, reason: `Plafond de ${CONFIG().season.maxAttribute} atteint.` };
     }
 
-    if (delta > 0 && pointsRemainingFor(manager, attrKey) < delta) {
+    if (delta > 0 && pointsRemaining(manager) < delta) {
       return { ok: false, reason: 'Plus assez de points disponibles.' };
     }
 
@@ -164,6 +127,5 @@
   window.LH3.services.playerService = {
     getPlayerBase, listPlayers, computeOverall, getMergedAttributes,
     getCard, getAllCards, teamOverall, pointsSpent, pointsAvailable, pointsRemaining, adjustAttribute, resetBoosts,
-    reservedFor, unspentReserved, totalUnspentReserved, pointsRemainingFor,
   };
 })();

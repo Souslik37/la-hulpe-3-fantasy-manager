@@ -1,16 +1,14 @@
 /**
  * La Hulpe 3 Fantasy Manager — Événements du club
  *
- * Bonus ponctuels et purement fun ("Braderie de La Hulpe", "Cadeau du
- * président"...), déclenchés par l'admin quand il veut. Deux formes :
- *  - génériques : alimentent un compteur "Points Fun", totalement séparé
- *    des PE (aucun impact sur classement/attributs — juste du folklore) ;
- *  - ciblées sur un attribut (ex: Troisième mi-temps) : donnent du PE
- *    normal (même monnaie unique que les matchs/l'assiduité), mais ce PE
- *    est "réservé" — il ne compte pas comme dépensable sur les AUTRES
- *    attributs tant qu'il n'est pas investi sur celui visé (voir
- *    playerService.pointsRemaining/pointsRemainingFor). Pas de deuxième
- *    monnaie : juste une règle de côté sur le même total de PE.
+ * Bonus ponctuels et fun ("Braderie de La Hulpe", "Cadeau du président"...),
+ * déclenchés par l'admin quand il veut. Donnent du VRAI PE — la même
+ * monnaie unique que les matchs et l'assiduité, jamais un compteur séparé.
+ *
+ * `attributeKey` est une simple suggestion thématique (ex: "on te suggère
+ * de mettre ça sur Troisième mi-temps parce que c'était la Braderie") —
+ * purement indicative, affichée dans le journal, sans aucune contrainte
+ * technique : le PE reste 100% libre, dépensable sur n'importe quel attribut.
  *
  * `recipientIds` fige qui était manager au moment de la création (un
  * manager qui rejoint après ne reçoit pas le bonus rétroactivement), ce qui
@@ -34,7 +32,7 @@
     return attr ? attr.label : attrKey;
   }
 
-  /** Admin uniquement. `attributeKey` optionnel (une des clés de CONFIG.attributes). */
+  /** Admin uniquement. `attributeKey` optionnel — juste une suggestion affichée, aucun effet sur les dépenses. */
   async function createEvent({ title, icon, amount, date, attributeKey }) {
     title = (title || '').trim();
     amount = Number(amount);
@@ -55,21 +53,14 @@
     if (!ok) return { ok: false, reason: 'Écriture impossible — vérifie ta connexion et réessaie.' };
 
     for (const manager of managers) {
-      if (attributeKey) {
-        window.LH3.services.peService.addPe(manager, amount);
-        manager.attributeReserved = manager.attributeReserved || {};
-        manager.attributeReserved[attributeKey] = (manager.attributeReserved[attributeKey] || 0) + amount;
-        await window.LH3.services.storageService.saveManagerProgress(manager.id, manager.pe, manager.history);
-        await window.LH3.services.storageService.saveManagerAttributeReserved(manager.id, manager.attributeReserved);
-      } else {
-        manager.funPoints = (manager.funPoints || 0) + amount;
-        await window.LH3.services.storageService.saveManagerFunPoints(manager.id, manager.funPoints);
-      }
+      window.LH3.services.peService.addPe(manager, amount);
+      await window.LH3.services.storageService.saveManagerProgress(manager.id, manager.pe, manager.history);
     }
 
     state.clubEvents = state.clubEvents || [];
     state.clubEvents.push(event);
 
+    const suggestion = attributeKey ? ` Suggestion : à mettre sur ${attributeLabel(attributeKey)}, mais libre à chacun d'en faire ce qu'il veut.` : '';
     const entry = {
       id: window.LH3.utils.id.uid('news'),
       generatorId: 'club-event',
@@ -78,9 +69,7 @@
       date: event.date,
       icon: event.icon,
       title: event.title,
-      text: attributeKey
-        ? `Petit bonus fun pour tout le monde grâce à "${event.title}" : +${amount} PE, à investir sur ${attributeLabel(attributeKey)} !`
-        : `Petit bonus fun pour tout le monde : +${amount} Points Fun grâce à "${event.title}" !`,
+      text: `"${event.title}" — tout le monde reçoit +${amount} PE !${suggestion}`,
       kind: 'fun',
       createdAt: new Date().toISOString(),
     };
@@ -91,7 +80,7 @@
     return { ok: true, event };
   }
 
-  /** Admin uniquement : reprend le bonus distribué et retire l'événement. */
+  /** Admin uniquement : reprend le PE distribué et retire l'événement. */
   async function removeEvent(id) {
     const event = getEvent(id);
     if (!event) return { ok: false, reason: 'Événement introuvable.' };
@@ -101,13 +90,7 @@
     (event.recipientIds || []).forEach((managerId) => {
       const manager = state.managers[managerId];
       if (!manager) return;
-      if (event.attributeKey) {
-        window.LH3.services.peService.addPe(manager, -event.amount);
-        manager.attributeReserved = manager.attributeReserved || {};
-        manager.attributeReserved[event.attributeKey] = Math.max(0, (manager.attributeReserved[event.attributeKey] || 0) - event.amount);
-      } else {
-        manager.funPoints = Math.max(0, (manager.funPoints || 0) - event.amount);
-      }
+      window.LH3.services.peService.addPe(manager, -event.amount);
       touchedManagers.push(manager);
     });
 
@@ -115,12 +98,7 @@
     if (!ok) return { ok: false, reason: 'Suppression impossible — vérifie ta connexion et réessaie.' };
 
     for (const manager of touchedManagers) {
-      if (event.attributeKey) {
-        await window.LH3.services.storageService.saveManagerProgress(manager.id, manager.pe, manager.history);
-        await window.LH3.services.storageService.saveManagerAttributeReserved(manager.id, manager.attributeReserved);
-      } else {
-        await window.LH3.services.storageService.saveManagerFunPoints(manager.id, manager.funPoints);
-      }
+      await window.LH3.services.storageService.saveManagerProgress(manager.id, manager.pe, manager.history);
     }
 
     state.clubEvents = (state.clubEvents || []).filter((e) => e.id !== id);

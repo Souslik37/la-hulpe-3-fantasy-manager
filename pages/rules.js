@@ -101,10 +101,11 @@
     root.appendChild(el('div', { className: 'card', style: { marginBottom: '18px' } }, [
       el('h3', { style: { marginBottom: '10px' } }, ['🎉 Événements du club']),
       el('p', { className: 'small', style: { lineHeight: '1.6' } }, [
-        'De temps en temps, l\'admin surprend tout le monde avec un bonus fun — genre "Braderie de La Hulpe" ou "Cadeau du président". Chacun reçoit alors des ',
-        el('b', {}, ['Points Fun']),
-        '. Ils n\'ont ', el('b', {}, ['aucun rapport avec les PE']),
-        ' : pas de conversion, pas d\'effet sur le classement, pas d\'effet sur le budget d\'attributs — un compteur à part, juste pour le folklore du club.',
+        'De temps en temps, la vie du club elle-même te rapporte des PE — une "Braderie de La Hulpe", un "Cadeau du président", ou n\'importe quel autre coup de folie du moment. Ce sont de ',
+        el('b', {}, ['vrais PE']),
+        ', exactement comme ceux gagnés sur un match ou à l\'entraînement — pas une monnaie à part. Parfois, l\'événement suggère un attribut où les mettre (la Braderie sur Troisième mi-temps, par exemple, parce que c\'est bien de ça qu\'il s\'agit) — mais ce n\'est qu\'une ',
+        el('b', {}, ['indication']),
+        ', jamais une obligation : libre à toi de les répartir où tu veux.',
       ]),
     ]));
 

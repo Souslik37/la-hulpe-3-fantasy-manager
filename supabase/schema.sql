@@ -28,11 +28,12 @@ create table managers (
   squad jsonb not null default '{}'::jsonb,
   pe integer not null default 0,
   history jsonb not null default '[]'::jsonb,
+  -- fun_points et attribute_reserved : vestiges d'une ancienne version des
+  -- événements du club (monnaie séparée, puis PE réservé par attribut).
+  -- Plus utilisés par l'app depuis que les événements donnent du PE 100%
+  -- libre (voir eventService.js) — laissés en base pour ne rien casser,
+  -- mais peuvent être supprimés sans risque si besoin.
   fun_points integer not null default 0,
-  -- PE reçus via un événement ciblé, en attente d'être investis sur cet
-  -- attribut précis — ex: {"troisiemeMiTemps": 100}. Toujours du PE normal
-  -- (manager.pe) en dessous, jamais une monnaie séparée — voir
-  -- playerService.pointsRemaining/pointsRemainingFor.
   attribute_reserved jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
