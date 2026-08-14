@@ -93,7 +93,7 @@
       el('h3', { style: { marginBottom: '10px' } }, ['🙌 Bonus d\'assiduité']),
       el('p', { className: 'small', style: { marginBottom: '12px', lineHeight: '1.6' } }, [
         'Environ 4 fois par saison, l\'admin distribue un bonus de PE selon ta présence aux entraînements — une appréciation globale, pas un pointage précis. ',
-        el('b', {}, ['Toujours additif']), ', jamais de pénalité : au pire, 0 PE ce coup-ci. Contrairement aux pronostics, ça ne demande aucun talent particulier — juste être là — donc c\'est volontairement généreux : c\'est ce qui garantit que tout le monde progresse, même sans être un crack du pronostic.',
+        el('b', {}, ['Toujours additif']), ', jamais de pénalité : au pire, 0 PE ce coup-ci. Contrairement aux pronostics, ça ne demande aucun talent particulier — juste être là — donc ça garantit que tout le monde progresse un peu, même sans être un crack du pronostic. Un vrai plus, mais calibré pour rester secondaire face à une saison de bons pronostics.',
       ]),
       buildPresenceTable(),
     ]));

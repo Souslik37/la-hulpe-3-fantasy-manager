@@ -96,16 +96,22 @@
 
     // Bonus d'assiduité (présence aux entraînements), distribué par l'admin
     // ~tous les 2 mois (voir page Administration + Calendrier). Purement
-    // additif, jamais de pénalité, et volontairement généreux : contrairement
-    // aux pronostics, l'assiduité ne dépend pas du talent — c'est le levier
-    // qui garantit qu'un manager lambda progresse quand même clairement.
+    // additif, jamais de pénalité — un vrai coup de pouce qui garantit
+    // qu'un manager lambda progresse quand même, sans dépendre du talent
+    // de pronostiqueur. Calibré pour rester modeste par rapport à l'économie
+    // des pronostics (un match bien deviné rapporte ~250-350 PE) : même en
+    // "Très bon" aux 4 évaluations de la saison, l'assiduité seule (1000 PE
+    // max) ne doit jamais rivaliser avec une saison de bons pronostics —
+    // c'est un plus, pas le vrai levier de classement. Paliers volontairement
+    // inégaux : chaque échelon vaut +50, sauf le dernier (Très bon) qui
+    // ajoute un vrai bonus d'excellence de +100 plutôt que +50.
     presence: {
       tiers: [
         { key: 'tres-faible', label: 'Très faible', pe: 0 },
-        { key: 'faible', label: 'Faible', pe: 150 },
-        { key: 'moyen', label: 'Moyen', pe: 300 },
-        { key: 'bon', label: 'Bon', pe: 450 },
-        { key: 'tres-bon', label: 'Très bon', pe: 600 },
+        { key: 'faible', label: 'Faible', pe: 50 },
+        { key: 'moyen', label: 'Moyen', pe: 100 },
+        { key: 'bon', label: 'Bon', pe: 150 },
+        { key: 'tres-bon', label: 'Très bon', pe: 250 },
       ],
     },
   };
