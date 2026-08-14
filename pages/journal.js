@@ -1,11 +1,19 @@
 /**
  * La Hulpe 3 Fantasy Manager — Page Journal du Club
  *
- * Organisé par journée (le match + ses commentaires/rapports avant et
- * après), du plus récent au plus ancien — rien n'est jamais supprimé d'une
- * journée passée quand une nouvelle arrive, tout reste consultable en
- * scrollant. Les brèves sans journée précise (assiduité, événements du
- * club) vivent dans une section à part en bas.
+ * Organisé par journée (le match + ses commentaires et brèves), du plus
+ * récent au plus ancien — rien n'est jamais supprimé d'une journée passée
+ * quand une nouvelle arrive, tout reste consultable en scrollant.
+ *
+ * Deux sections par journée, volontairement séparées :
+ *  - 💬 Commentaires : le fil brut, spontané, ce que chacun poste (pré et
+ *    post-match mélangés, l'ordre chronologique suffit à les distinguer).
+ *  - 📰 Dépêche du jour : tout ce qui est généré (les 7 brèves stats/
+ *    récompenses auto après un résultat encodé, + les rapports "avant" et
+ *    "après" déclenchés par l'admin) — le contenu "officiel" du club.
+ *
+ * Les brèves sans journée précise (assiduité, événements du club) vivent
+ * dans une section à part en bas.
  */
 (function () {
   window.LH3 = window.LH3 || {};
@@ -13,20 +21,29 @@
 
   const { el } = window.LH3.utils.dom;
 
-  function buildEntry(e) {
+  function buildEntry(e, isAdmin, rerender) {
     return el('div', { className: 'journal-entry kind-' + (e.kind || 'stat') }, [
       el('div', { className: 'journal-icon' }, [e.icon]),
-      el('div', {}, [
+      el('div', { style: { flex: '1' } }, [
         el('div', { className: 'journal-title' }, [e.title]),
         el('div', { className: 'journal-text' }, [e.text]),
       ]),
+      isAdmin ? el('button', {
+        className: 'btn btn-sm btn-ghost', title: 'Supprimer cette brève',
+        onClick: async () => {
+          const res = await window.LH3.services.journalService.removeEntry(e.id);
+          if (!res.ok) window.LH3.components.toast.show(res.reason, 'error');
+          else rerender();
+        },
+      }, ['✕']) : null,
     ]);
   }
 
-  function buildCommentRow(c, managers) {
+  function buildCommentRow(c) {
+    const managers = window.LH3.services.stateService.getState().managers;
     const author = managers[c.managerId];
     return el('div', { className: 'journal-entry kind-fun' }, [
-      el('div', { className: 'journal-icon' }, ['💬']),
+      el('div', { className: 'journal-icon' }, [c.phase === 'post' ? '🗣️' : '📋']),
       el('div', {}, [
         el('div', { className: 'journal-title' }, [author ? author.name : 'Un manager']),
         el('div', { className: 'journal-text' }, [c.text]),
@@ -34,26 +51,27 @@
     ]);
   }
 
-  function buildSubsection(title, entries, comments, managers) {
-    if (!entries.length && !comments.length) return null;
+  function buildSection(title, emptyHint, nodes) {
     return el('div', { style: { marginTop: '10px' } }, [
       el('div', { className: 'muted small', style: { fontWeight: '750', textTransform: 'uppercase', fontSize: '11px', marginBottom: '6px' } }, [title]),
-      el('div', { className: 'journal-list' }, [
-        ...entries.map(buildEntry),
-        ...comments.map((c) => buildCommentRow(c, managers)),
-      ]),
+      nodes.length
+        ? el('div', { className: 'journal-list' }, nodes)
+        : el('div', { className: 'muted small' }, [emptyHint]),
     ]);
   }
 
   function render(root) {
+    const manager = window.LH3.services.managerService.getActiveManager();
+    const isAdmin = manager.role === 'admin';
+    const rerender = () => render(document.getElementById('page-root'));
+
     const allEntries = window.LH3.services.journalService.listEntries();
     const matches = window.LH3.services.seasonService.listMatches();
-    const managers = window.LH3.services.stateService.getState().managers;
 
     root.innerHTML = '';
     root.appendChild(el('div', { className: 'page-header' }, [
       el('h1', {}, ['📰 Journal du Club']),
-      el('p', {}, ['Le récap de chaque journée, avant et après le match — pronostics, réactions, résultats. Rien n\'est jamais effacé.']),
+      el('p', {}, ['Le récap de chaque journée — les commentaires de tout le monde d\'un côté, la dépêche officielle de l\'autre. Rien n\'est jamais effacé.']),
     ]));
 
     const byMatchday = {};
@@ -78,10 +96,7 @@
 
     matchdaysWithContent.forEach((match) => {
       const entries = (byMatchday[match.matchday] || []).slice().sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-      const preEntries = entries.filter((e) => e.generatorId === 'pre-match-report');
-      const postEntries = entries.filter((e) => e.generatorId !== 'pre-match-report');
-      const preComments = window.LH3.services.commentService.listComments(match.id, 'pre');
-      const postComments = window.LH3.services.commentService.listComments(match.id, 'post');
+      const comments = window.LH3.services.commentService.listComments(match.id);
 
       const card = el('div', { className: 'card', style: { marginBottom: '18px' } }, [
         el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' } }, [
@@ -90,8 +105,8 @@
             ? el('span', { className: 'badge badge-green' }, [match.result.scoreFor + ' – ' + match.result.scoreAgainst])
             : el('span', { className: 'muted small' }, [window.LH3.utils.format.formatDateFr(match.date)]),
         ]),
-        buildSubsection('📋 Avant-match', preEntries, preComments, managers),
-        buildSubsection('🗣️ Après-match', postEntries, postComments, managers),
+        buildSection('📰 Dépêche du jour', 'Rien publié pour l\'instant.', entries.map((e) => buildEntry(e, isAdmin, rerender))),
+        buildSection('💬 Commentaires', 'Aucun commentaire pour l\'instant.', comments.map(buildCommentRow)),
       ]);
       root.appendChild(card);
     });
@@ -99,7 +114,7 @@
     if (generalEntries.length) {
       root.appendChild(el('div', { className: 'section-title' }, ['🙌 Autres brèves du club']));
       const list = el('div', { className: 'journal-list' });
-      generalEntries.forEach((e) => list.appendChild(buildEntry(e)));
+      generalEntries.forEach((e) => list.appendChild(buildEntry(e, isAdmin, rerender)));
       root.appendChild(list);
     }
   }

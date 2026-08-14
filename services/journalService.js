@@ -106,6 +106,19 @@
     await window.LH3.services.storageService.saveJournalEntries([entry]);
   }
 
+  /** Admin uniquement (RLS journal ne permet l'écriture qu'à un compte admin) : retire une brève générée. */
+  async function removeEntry(id) {
+    const state = window.LH3.services.stateService.getState();
+    if (!state.journal.some((e) => e.id === id)) return { ok: false, reason: 'Brève introuvable.' };
+
+    const ok = await window.LH3.services.storageService.deleteJournalEntriesByIds([id]);
+    if (!ok) return { ok: false, reason: 'Suppression impossible — vérifie ta connexion et réessaie.' };
+
+    state.journal = state.journal.filter((e) => e.id !== id);
+    window.LH3.services.stateService.notify();
+    return { ok: true };
+  }
+
   function quoteLines(comments, managers) {
     return comments.map((c) => '"' + c.text + '" — ' + ((managers[c.managerId] && managers[c.managerId].name) || 'un manager'));
   }
@@ -189,5 +202,5 @@
     return { ok: true };
   }
 
-  window.LH3.services.journalService = { generateForMatchday, listEntries, generatePreMatchReport, generatePostMatchComments };
+  window.LH3.services.journalService = { generateForMatchday, listEntries, removeEntry, generatePreMatchReport, generatePostMatchComments };
 })();
