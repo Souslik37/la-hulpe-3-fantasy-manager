@@ -39,7 +39,7 @@
 
     return `
       <div class="${classes.join(' ')}" data-player-id="${escapeHtml(card.id)}"${style}>
-        ${opts.captain ? '<div class="pc-captain-badge">C</div>' : ''}
+        ${opts.roles && opts.roles.length ? `<div class="pc-role-badge">${opts.roles.join(' · ')}</div>` : ''}
         ${opts.compact ? '' : `<div class="pc-rarity-label">${rarityLabel(card.rarity)}</div>`}
         ${opts.compact ? '' : `<div class="pc-overall">${card.overall}</div>`}
         <div class="pc-avatar-wrap">${avatar}</div>

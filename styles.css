@@ -464,11 +464,11 @@ textarea { resize: vertical; min-height: 70px; }
 .pc-attr b { color: var(--text-0); font-weight: 800; text-align: right; }
 .pc-attr-track { height: 4px; background: var(--bg-4); border-radius: 3px; overflow: hidden; }
 .pc-attr-fill { height: 100%; border-radius: 3px; background: var(--rarity, var(--green)); transform-origin: left; animation: bar-fill .6s var(--ease-out) backwards; }
-.pc-captain-badge {
+.pc-role-badge {
   position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
   background: var(--yellow); color: #fff; font-size: 9px; font-weight: 900;
   border-radius: 8px; padding: 1px 7px; box-shadow: var(--shadow-xs);
-  z-index: 2;
+  z-index: 2; white-space: nowrap;
 }
 
 .player-card.compact { aspect-ratio: 3.6 / 1; flex-direction: row; align-items: center; padding: 9px 13px; gap: 11px; }

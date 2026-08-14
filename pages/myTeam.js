@@ -45,11 +45,13 @@
     rerender();
   }
 
-  function toggleCaptain(manager, playerId, rerender) {
-    manager.squad.captainId = manager.squad.captainId === playerId ? null : playerId;
-    window.LH3.services.stateService.persist();
-    rerender();
-  }
+  // Trois rôles honorifiques indépendants (voir managerService.rolesFor) —
+  // un joueur sélectionné peut recevoir n'importe quelle combinaison.
+  const ROLES = [
+    { key: 'captainId', icon: '⭐', label: 'Capitaine', removeLabel: 'Retirer le brassard' },
+    { key: 'buteurId', icon: '🎯', label: 'Buteur', removeLabel: 'Retirer le rôle de buteur' },
+    { key: 'lanceurId', icon: '🤾', label: 'Lanceur', removeLabel: 'Retirer le rôle de lanceur' },
+  ];
 
   function pitchOpts(manager, rerender) {
     return {
@@ -59,28 +61,36 @@
     };
   }
 
+  function buildRoleButtons(manager, rerender) {
+    const buttons = [];
+    ROLES.forEach((r) => {
+      buttons.push(el('button', {
+        className: 'btn btn-sm',
+        onClick: () => {
+          if (!selectedForSwap) { window.LH3.components.toast.show('Sélectionne un joueur sur le terrain ou le banc d\'abord.'); return; }
+          window.LH3.services.managerService.toggleRole(manager, r.key, selectedForSwap, rerender);
+        },
+      }, [r.icon + ' ' + r.label + ' = joueur sélectionné']));
+      if (manager.squad[r.key]) {
+        buttons.push(el('button', {
+          className: 'btn btn-ghost btn-sm',
+          onClick: () => window.LH3.services.managerService.toggleRole(manager, r.key, manager.squad[r.key], rerender),
+        }, [r.removeLabel]));
+      }
+    });
+    return buttons;
+  }
+
   function buildCompositionTab(manager, rerender) {
     return el('div', {}, [
       el('p', { className: 'muted small', style: { marginBottom: '14px' } }, [
-        'Clique un joueur pour le sélectionner, puis clique un autre emplacement pour les échanger. Les postes sont purement visuels. Clique le maillot pour désigner le capitaine (honorifique).',
+        'Clique un joueur pour le sélectionner, puis clique un autre emplacement pour les échanger. Les postes sont purement visuels. Sélectionne un joueur puis un bouton ci-dessous pour lui attribuer capitaine, buteur ou lanceur (honorifiques, cumulables).',
       ]),
       el('div', { className: 'section-title' }, ['🏟️ Le XV de départ', selectedForSwap ? el('span', { className: 'badge badge-green' }, ['Sélection en cours — clique une autre case']) : null]),
       window.LH3.components.squadPitch.renderPitch(manager, pitchOpts(manager, rerender)),
       el('div', { className: 'section-title' }, ['🪑 Le banc (illimité)']),
       window.LH3.components.squadPitch.renderBench(manager, pitchOpts(manager, rerender)),
-      el('div', { style: { marginTop: '18px', display: 'flex', gap: '10px', flexWrap: 'wrap' } }, [
-        el('button', {
-          className: 'btn btn-sm',
-          onClick: () => {
-            if (!selectedForSwap) { window.LH3.components.toast.show('Sélectionne un joueur sur le terrain ou le banc d\'abord.'); return; }
-            toggleCaptain(manager, selectedForSwap, rerender);
-          },
-        }, ['⭐ Capitaine = joueur sélectionné']),
-        manager.squad.captainId ? el('button', {
-          className: 'btn btn-ghost btn-sm',
-          onClick: () => toggleCaptain(manager, manager.squad.captainId, rerender),
-        }, ['Retirer le brassard']) : null,
-      ]),
+      el('div', { style: { marginTop: '18px', display: 'flex', gap: '10px', flexWrap: 'wrap' } }, buildRoleButtons(manager, rerender)),
     ]);
   }
 
@@ -251,10 +261,14 @@
     ]);
 
     const grid = el('div', { className: 'players-grid' });
-    playerService.listPlayers().forEach((p) => {
-      const card = playerService.getCard(manager, p.id);
+    // Triée par note décroissante (les meilleurs en premier), puis par nom à
+    // note égale — plus pratique pour repérer vite qui vaut le coup de booster.
+    const cards = playerService.listPlayers()
+      .map((p) => ({ player: p, card: playerService.getCard(manager, p.id) }))
+      .sort((a, b) => b.card.overall - a.card.overall || a.player.name.localeCompare(b.player.name));
+    cards.forEach(({ player: p, card }) => {
       const wrap = el('div', { onClick: () => openBoostModal(manager, p.id, rerender) });
-      wrap.innerHTML = window.LH3.components.playerCard.render(card, { captain: manager.squad.captainId === p.id });
+      wrap.innerHTML = window.LH3.components.playerCard.render(card, { roles: window.LH3.services.managerService.rolesFor(manager, p.id) });
       grid.appendChild(wrap);
     });
 

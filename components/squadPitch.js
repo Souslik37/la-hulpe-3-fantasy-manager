@@ -21,7 +21,7 @@
   function buildSlot(manager, playerId, posLabel, opts) {
     opts = opts || {};
     const isSelected = !opts.readOnly && opts.selectedId === playerId;
-    const isCaptain = manager.squad.captainId === playerId;
+    const roles = playerId ? window.LH3.services.managerService.rolesFor(manager, playerId) : [];
     const card = playerId ? window.LH3.services.playerService.getCard(manager, playerId) : null;
 
     const badge = el('div', {
@@ -42,9 +42,8 @@
       el('div', { className: 'pitch-slot-name' }, [card ? card.name : '—']),
     ]);
 
-    if (isCaptain) {
-      const c = el('span', { className: 'mini-captain' }, ['C']);
-      badge.appendChild(c);
+    if (roles.length) {
+      badge.appendChild(el('span', { className: 'mini-captain' }, [roles.join('·')]));
     }
 
     return slot;
@@ -66,9 +65,20 @@
     return pitch;
   }
 
+  /**
+   * Ordre d'affichage uniquement (alphabétique) — jamais l'ordre stocké dans
+   * manager.squad.bench, sur lequel s'appuient les échanges par index. Un
+   * joueur qui redescend sur le banc se retrouve donc toujours à sa place
+   * alphabétique, sans logique de tri à gérer côté échange.
+   */
   function renderBench(manager, opts) {
     const strip = el('div', { className: 'bench-strip' });
-    manager.squad.bench.forEach((playerId) => {
+    const sorted = manager.squad.bench.slice().sort((a, b) => {
+      const baseA = window.LH3.services.playerService.getPlayerBase(a);
+      const baseB = window.LH3.services.playerService.getPlayerBase(b);
+      return (baseA ? baseA.name : '').localeCompare(baseB ? baseB.name : '');
+    });
+    sorted.forEach((playerId) => {
       const wrap = el('div', { className: 'bench-slot' });
       wrap.appendChild(buildSlot(manager, playerId, 'Banc', opts));
       strip.appendChild(wrap);

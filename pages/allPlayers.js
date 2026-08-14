@@ -84,7 +84,7 @@
 
       cards.forEach((card) => {
         const wrap = el('div', { onClick: () => showDetail(manager, card.id) });
-        wrap.innerHTML = window.LH3.components.playerCard.render(card, { captain: manager.squad.captainId === card.id });
+        wrap.innerHTML = window.LH3.components.playerCard.render(card, { roles: window.LH3.services.managerService.rolesFor(manager, card.id) });
         gridWrap.appendChild(wrap);
       });
     }

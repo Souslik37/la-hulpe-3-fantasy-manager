@@ -22,7 +22,24 @@
       starters: ids.slice(0, startersCount),
       bench: ids.slice(startersCount),
       captainId: null,
+      buteurId: null,
+      lanceurId: null,
     };
+  }
+
+  // Capitaine / Buteur / Lanceur : trois rôles honorifiques indépendants,
+  // purement visuels (aucun impact sur les PE ni les attributs), un même
+  // joueur peut cumuler plusieurs rôles.
+  const ROLE_BADGES = { captainId: 'C', buteurId: 'B', lanceurId: 'L' };
+
+  function rolesFor(manager, playerId) {
+    return Object.keys(ROLE_BADGES).filter((key) => manager.squad[key] === playerId).map((key) => ROLE_BADGES[key]);
+  }
+
+  function toggleRole(manager, roleKey, playerId, rerender) {
+    manager.squad[roleKey] = manager.squad[roleKey] === playerId ? null : playerId;
+    window.LH3.services.stateService.persist();
+    if (rerender) rerender();
   }
 
   function emptyCoach() {
@@ -235,5 +252,6 @@
     getManager, getActiveManager, listManagers, removeManager,
     updateCoach, randomCoach, defaultSquad, emptyCoach, searchAccents,
     randomJob, randomAccent, randomStory, randomQuote, randomManagementStyle,
+    rolesFor, toggleRole,
   };
 })();
