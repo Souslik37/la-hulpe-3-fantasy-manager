@@ -103,9 +103,9 @@
       el('p', { className: 'small', style: { lineHeight: '1.6' } }, [
         'De temps en temps, la vie du club elle-même te rapporte des PE — une "Braderie de La Hulpe", un "Cadeau du président", ou n\'importe quel autre coup de folie du moment. Ce sont de ',
         el('b', {}, ['vrais PE']),
-        ', exactement comme ceux gagnés sur un match ou à l\'entraînement — pas une monnaie à part. Parfois, l\'événement suggère un attribut où les mettre (la Braderie sur Troisième mi-temps, par exemple, parce que c\'est bien de ça qu\'il s\'agit) — mais ce n\'est qu\'une ',
-        el('b', {}, ['indication']),
-        ', jamais une obligation : libre à toi de les répartir où tu veux.',
+        ', exactement comme ceux gagnés sur un match ou à l\'entraînement. Chaque événement ',
+        el('b', {}, ['te donne des PE à investir sur un attribut précis']),
+        ', en lien avec ce qui vient de se passer : l\'équipe assiste au mariage de Lancelot ? Direction Troisième mi-temps, +50 PE.',
       ]),
     ]));
 
