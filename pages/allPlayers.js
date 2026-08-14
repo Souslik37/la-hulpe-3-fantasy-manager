@@ -72,7 +72,7 @@
         const q = search.trim().toLowerCase();
         cards = cards.filter((c) => c.name.toLowerCase().includes(q));
       }
-      cards.sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : b.overall - a.overall);
+      cards.sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : b.overall - a.overall || a.name.localeCompare(b.name));
 
       if (!cards.length) {
         gridWrap.appendChild(el('div', { className: 'empty-state' }, [
