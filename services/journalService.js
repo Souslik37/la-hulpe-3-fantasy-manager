@@ -219,19 +219,29 @@
       }
     }
 
+    // Peut désigner plusieurs managers à la fois (ex: 2 personnes ont
+    // toutes les deux deviné homme du match + boulette) — jamais un seul
+    // "gagnant" arbitraire choisi parmi des ex æquo.
     const bothLucky = graded.filter((r) => r.breakdown.motmCorrect && r.breakdown.blunderCorrect);
     const oneLucky = graded.filter((r) => r.breakdown.motmCorrect || r.breakdown.blunderCorrect);
     const luckyPool = bothLucky.length ? bothLucky : oneLucky;
     if (luckyPool.length) {
-      const winner = luckyPool[0];
-      roles.push({
-        icon: '🍀', name: 'Le Chanceux du Jour', manager: name(winner.manager_id),
-        detail: bothLucky.length ? 'Homme du match ET boulette devinés' : (winner.breakdown.motmCorrect ? 'Homme du match deviné' : 'Boulette devinée'),
-      });
+      let detail;
+      if (bothLucky.length) detail = 'Homme du match ET boulette devinés';
+      else if (luckyPool.length === 1) detail = luckyPool[0].breakdown.motmCorrect ? 'Homme du match deviné' : 'Boulette devinée';
+      else detail = 'Homme du match ou boulette deviné';
+      roles.push({ icon: '🍀', name: 'Le Chanceux du Jour', manager: luckyPool.map((r) => name(r.manager_id)).join(', '), detail });
     }
 
-    const byPe = graded.slice().sort((a, b) => (a.pe_earned || 0) - (b.pe_earned || 0))[0];
-    roles.push({ icon: '🤡', name: 'Le Boulet du Jour', manager: name(byPe.manager_id), detail: `${byPe.pe_earned || 0} PE sur cette journée` });
+    const { formatSigned } = window.LH3.utils.format;
+    const maxPe = Math.max(...graded.map((r) => r.pe_earned || 0));
+    const minPe = Math.min(...graded.map((r) => r.pe_earned || 0));
+    const crackPool = graded.filter((r) => (r.pe_earned || 0) === maxPe);
+    const boulePool = graded.filter((r) => (r.pe_earned || 0) === minPe);
+    roles.push({ icon: '🚀', name: 'Le Crack du Jour', manager: crackPool.map((r) => name(r.manager_id)).join(', '), detail: `${formatSigned(maxPe)} PE sur cette journée` });
+    if (minPe !== maxPe) {
+      roles.push({ icon: '🤡', name: 'Le Boulet du Jour', manager: boulePool.map((r) => name(r.manager_id)).join(', '), detail: `${formatSigned(minPe)} PE sur cette journée` });
+    }
 
     return roles;
   }
