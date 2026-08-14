@@ -118,6 +118,10 @@
     if (match.status === 'ouvert') root.appendChild(buildOpenForm(manager, match));
     else if (match.status === 'termine') root.appendChild(buildFinishedView(manager, match));
     else root.appendChild(buildLockedView(match));
+
+    root.appendChild(el('div', { className: 'card', style: { marginTop: '18px' } }, [
+      window.LH3.components.matchComments.render(match, manager),
+    ]));
   }
 
   window.LH3.pages.predictions = { render };

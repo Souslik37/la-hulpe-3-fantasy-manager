@@ -110,55 +110,7 @@
 
   // ── Commentaires libres avant/après-match (facultatifs, lus par tous) ───
   function showCommentsModal(match, manager) {
-    function buildSection(phase, title, placeholder) {
-      const list = el('div', { style: { marginBottom: '10px' } });
-      const input = el('textarea', { placeholder, rows: 2 });
-
-      function refresh() {
-        list.innerHTML = '';
-        const comments = window.LH3.services.commentService.listComments(match.id, phase);
-        if (!comments.length) {
-          list.appendChild(el('div', { className: 'muted small' }, ['Aucun commentaire pour l\'instant.']));
-          return;
-        }
-        comments.forEach((c) => {
-          const author = window.LH3.services.managerService.getManager(c.managerId);
-          list.appendChild(el('div', { className: 'boost-row' }, [
-            el('div', {}, [
-              el('div', { style: { fontWeight: '700', fontSize: '12.5px' } }, [author ? author.name : 'Un manager']),
-              el('div', { className: 'small' }, [c.text]),
-            ]),
-            c.managerId === manager.id ? el('button', {
-              className: 'btn btn-sm btn-ghost', title: 'Retirer',
-              onClick: async () => { await window.LH3.services.commentService.removeComment(c.id); refresh(); },
-            }, ['✕']) : null,
-          ]));
-        });
-      }
-      refresh();
-
-      const sendBtn = el('button', {
-        className: 'btn btn-sm',
-        onClick: async () => {
-          const res = await window.LH3.services.commentService.addComment(match.id, phase, input.value);
-          if (!res.ok) { window.LH3.components.toast.show(res.reason, 'error'); return; }
-          input.value = '';
-          refresh();
-        },
-      }, ['Envoyer']);
-
-      return el('div', { style: { marginBottom: '18px' } }, [
-        el('div', { className: 'muted small', style: { marginBottom: '6px', fontWeight: '750', textTransform: 'uppercase', fontSize: '11px' } }, [title]),
-        list,
-        el('div', { style: { display: 'flex', gap: '8px', alignItems: 'flex-start' } }, [input, sendBtn]),
-      ]);
-    }
-
-    const body = el('div', {}, [
-      buildSection('pre', '📋 Avant-match', 'Un petit mot avant le match... (facultatif)'),
-      buildSection('post', '🗣️ Après-match', 'Une réaction après le match... (facultatif)'),
-    ]);
-
+    const body = window.LH3.components.matchComments.render(match, manager);
     window.LH3.components.modal.open({ title: 'Commentaires · J' + match.matchday + ' vs ' + match.opponent, body, actions: [{ label: 'Fermer', className: 'btn-primary' }] });
   }
 
