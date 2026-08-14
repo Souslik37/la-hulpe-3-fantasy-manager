@@ -48,7 +48,7 @@
     return {
       id: row.id, generatorId: row.generator_id, matchId: row.match_id, matchday: row.matchday,
       date: row.date, icon: row.icon, title: row.title, text: row.text, kind: row.kind,
-      createdAt: row.created_at,
+      payload: row.payload || null, createdAt: row.created_at,
     };
   }
 
@@ -276,7 +276,8 @@
     if (!entries.length) return true;
     const { error } = await client().from('journal').insert(entries.map((e) => ({
       id: e.id, generator_id: e.generatorId, match_id: e.matchId, matchday: e.matchday,
-      date: e.date, icon: e.icon, title: e.title, text: e.text, kind: e.kind, created_at: e.createdAt,
+      date: e.date, icon: e.icon, title: e.title, text: e.text, kind: e.kind,
+      payload: e.payload || null, created_at: e.createdAt,
     })));
     if (error) console.error('[storageService] échec sauvegarde journal', error);
     return !error;

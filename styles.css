@@ -691,6 +691,52 @@ textarea { resize: vertical; min-height: 70px; }
 .journal-entry.kind-stat { --journal-bg: var(--blue-bg); }
 .journal-entry.kind-fun { --journal-bg: var(--purple-bg); }
 .journal-entry.kind-progress { --journal-bg: var(--green-bg); }
+.journal-entry.kind-preview { --journal-bg: var(--blue-bg); }
+
+.journal-entry.clickable { cursor: pointer; }
+.journal-entry.clickable .journal-more { font-size: 11px; font-weight: 750; color: var(--green-text); margin-top: 6px; }
+
+/* ============================================================
+   Rapport de match (modal riche — voir components/matchReport.js)
+   ============================================================ */
+.report-hero {
+  border-radius: var(--radius-md);
+  padding: 24px 20px;
+  text-align: center;
+  margin-bottom: 18px;
+  color: #fff;
+}
+.report-hero.tone-victoire { background: linear-gradient(135deg, var(--green-dark), var(--green)); }
+.report-hero.tone-defaite { background: linear-gradient(135deg, #7A2E2B, var(--red)); }
+.report-hero.tone-nul { background: linear-gradient(135deg, #4A5142, #6B7260); }
+.report-hero.tone-preview { background: linear-gradient(135deg, #2B3D6B, #4C5FA0); }
+.report-hero-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; opacity: .85; }
+.report-hero-opponent { font-size: 15px; font-weight: 750; margin-top: 5px; opacity: .95; }
+.report-hero-score { font-size: 46px; font-weight: 900; margin-top: 8px; letter-spacing: -.01em; animation: pop-in .35s var(--ease-out) backwards; }
+.report-hero-sub { font-size: 12.5px; margin-top: 8px; opacity: .92; font-weight: 600; }
+
+.report-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 6px; }
+.report-stat { background: var(--bg-3); border-radius: var(--radius-sm); padding: 12px 8px; text-align: center; animation: slide-in .3s var(--ease-out) backwards; }
+.report-stat .val { font-size: 21px; font-weight: 900; }
+.report-stat .lbl { font-size: 10px; color: var(--text-2); font-weight: 750; text-transform: uppercase; letter-spacing: .02em; margin-top: 2px; }
+
+.report-section-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); margin: 18px 0 8px; }
+
+.consensus-bar { display: flex; height: 28px; border-radius: 8px; overflow: hidden; background: var(--bg-4); }
+.consensus-seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; transition: width .6s var(--ease-out); white-space: nowrap; overflow: hidden; }
+.consensus-seg.v { background: var(--green); }
+.consensus-seg.n { background: var(--text-3); }
+.consensus-seg.d { background: var(--red); }
+.consensus-legend { display: flex; gap: 16px; margin-top: 9px; font-size: 11.5px; color: var(--text-2); font-weight: 650; }
+.consensus-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+
+.report-badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+
+.report-callout { background: var(--yellow-bg); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 12.5px; line-height: 1.5; color: var(--text-0); margin: 14px 0; }
+
+.report-quote { background: var(--bg-3); border-left: 3px solid var(--border-light); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; margin-bottom: 8px; }
+.report-quote-text { font-size: 13px; font-style: italic; color: var(--text-1); line-height: 1.45; }
+.report-quote-author { font-size: 11px; color: var(--text-2); font-weight: 700; margin-top: 4px; }
 
 /* ============================================================
    Standings

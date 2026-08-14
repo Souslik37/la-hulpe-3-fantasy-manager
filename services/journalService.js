@@ -123,10 +123,20 @@
     return comments.map((c) => '"' + c.text + '" — ' + ((managers[c.managerId] && managers[c.managerId].name) || 'un manager'));
   }
 
+  function managerName(state, managerId) {
+    return (state.managers[managerId] && state.managers[managerId].name) || 'un manager';
+  }
+
+  function getPlayerName(playerId) {
+    const p = window.LH3.services.playerService.getPlayerBase(playerId);
+    return p ? p.name : 'un joueur inconnu';
+  }
+
   /**
    * Admin uniquement (RLS predictions n'autorise que l'admin à tout lire).
-   * Compile les pronostics déjà soumis (résultat, marqueurs les plus
-   * cochés) + les commentaires "avant-match" en une brève de journal.
+   * Compile les pronostics déjà soumis + les commentaires "avant-match" en
+   * une brève de journal — `payload` structuré pour un affichage riche
+   * (voir components/matchReport.js), `text` gardé en repli simple.
    */
   async function generatePreMatchReport(matchId) {
     const match = window.LH3.services.seasonService.getMatch(matchId);
@@ -142,6 +152,8 @@
     }
 
     const parts = [];
+    let payload = { type: 'pre-match', opponent: match.opponent, predictionsCount: submitted.length, comments: comments.map((c) => ({ author: managerName(state, c.managerId), text: c.text })) };
+
     if (submitted.length) {
       const counts = { V: 0, N: 0, D: 0 };
       submitted.forEach((r) => {
@@ -154,8 +166,24 @@
       const scorerCounts = {};
       submitted.forEach((r) => (r.try_scorers || []).forEach((id) => { scorerCounts[id] = (scorerCounts[id] || 0) + 1; }));
       const topScorers = Object.entries(scorerCounts).sort((a, b) => b[1] - a[1]).slice(0, 3)
-        .map(([id, count]) => { const p = window.LH3.services.playerService.getPlayerBase(id); return (p ? p.name : 'un joueur') + ' (' + count + ')'; });
-      if (topScorers.length) parts.push('Marqueurs les plus attendus : ' + topScorers.join(', ') + '.');
+        .map(([id, count]) => ({ name: getPlayerName(id), count }));
+      if (topScorers.length) parts.push('Marqueurs les plus attendus : ' + topScorers.map((s) => s.name + ' (' + s.count + ')').join(', ') + '.');
+
+      const totalPointsList = submitted.map((r) => r.score_for + r.score_against);
+      const totalTriesList = submitted.map((r) => r.total_tries).filter((n) => n !== null && n !== undefined);
+      const avg = (list) => Math.round(list.reduce((a, b) => a + b, 0) / list.length);
+      const maxTotalPoints = Math.max(...totalPointsList);
+      const boldest = submitted.find((r) => (r.score_for + r.score_against) === maxTotalPoints);
+
+      payload = Object.assign(payload, {
+        resultSplit: { V: pct(counts.V), N: pct(counts.N), D: pct(counts.D) },
+        avgTotalPoints: avg(totalPointsList),
+        maxTotalPoints,
+        boldestPredictor: boldest ? managerName(state, boldest.manager_id) : null,
+        boldestScore: boldest ? boldest.score_for + ' – ' + boldest.score_against : null,
+        avgTotalTries: totalTriesList.length ? avg(totalTriesList) : null,
+        topScorers,
+      });
     }
     if (comments.length) parts.push('Dans les couloirs du club : ' + quoteLines(comments, state.managers).join(' '));
 
@@ -169,6 +197,7 @@
       title: 'Avant-match : La Hulpe 3 vs ' + match.opponent,
       text: parts.join(' '),
       kind: 'preview',
+      payload,
       createdAt: new Date().toISOString(),
     };
     await replaceGeneratedEntry(matchId, 'pre-match-report', entry);
@@ -176,14 +205,48 @@
     return { ok: true };
   }
 
-  /** Admin uniquement. Compile les commentaires "après-match" en une brève (les stats/récompenses restent gérées par generateForMatchday). */
+  /**
+   * Admin uniquement (RLS predictions n'autorise que l'admin à tout lire).
+   * Compile le vrai résultat + qui a deviné quoi + les commentaires
+   * "après-match" en une brève de journal — nécessite le résultat officiel
+   * déjà encodé (les stats/récompenses par générateur restent gérées
+   * séparément par generateForMatchday, déclenché automatiquement).
+   */
   async function generatePostMatchComments(matchId) {
     const match = window.LH3.services.seasonService.getMatch(matchId);
     if (!match) return { ok: false, reason: 'Match introuvable.' };
+    if (!match.result) return { ok: false, reason: 'Le résultat officiel n\'est pas encore encodé.' };
 
     const state = window.LH3.services.stateService.getState();
     const comments = window.LH3.services.commentService.listComments(matchId, 'post');
-    if (!comments.length) return { ok: false, reason: 'Aucun commentaire après-match pour le moment.' };
+    const rows = await window.LH3.services.storageService.loadPredictionsForMatch(matchId);
+    const graded = rows.filter((r) => r.breakdown);
+
+    const result = match.result;
+    const exactScoreWinners = graded.filter((r) => r.breakdown.exactScore).map((r) => managerName(state, r.manager_id));
+    const resultCorrectCount = graded.filter((r) => r.breakdown.resultCorrect).length;
+
+    const payload = {
+      type: 'post-match',
+      opponent: match.opponent,
+      scoreFor: result.scoreFor,
+      scoreAgainst: result.scoreAgainst,
+      totalTries: result.totalTries,
+      totalPoints: result.scoreFor + result.scoreAgainst,
+      tryScorers: (result.tryScorers || []).map(getPlayerName),
+      manOfMatch: result.manOfMatchId ? getPlayerName(result.manOfMatchId) : null,
+      blunder: result.blunderId ? getPlayerName(result.blunderId) : null,
+      gradedCount: graded.length,
+      resultCorrectCount,
+      resultCorrectPct: graded.length ? Math.round((resultCorrectCount / graded.length) * 100) : null,
+      exactScoreWinners,
+      comments: comments.map((c) => ({ author: managerName(state, c.managerId), text: c.text })),
+    };
+
+    const textParts = [`Score final : ${result.scoreFor} – ${result.scoreAgainst} (${result.totalTries || 0} essais, ${payload.totalPoints} points).`];
+    if (graded.length) textParts.push(`${resultCorrectCount}/${graded.length} managers avaient deviné le bon résultat.`);
+    if (exactScoreWinners.length) textParts.push('Score exact trouvé par ' + exactScoreWinners.join(', ') + '.');
+    if (comments.length) textParts.push('Dans les couloirs du club : ' + quoteLines(comments, state.managers).join(' '));
 
     const entry = {
       id: window.LH3.utils.id.uuid(),
@@ -192,9 +255,10 @@
       matchday: match.matchday,
       date: match.date,
       icon: '💬',
-      title: 'Les réactions après La Hulpe 3 vs ' + match.opponent,
-      text: quoteLines(comments, state.managers).join(' '),
+      title: 'Après-match : La Hulpe 3 vs ' + match.opponent,
+      text: textParts.join(' '),
       kind: 'fun',
+      payload,
       createdAt: new Date().toISOString(),
     };
     await replaceGeneratedEntry(matchId, 'post-match-comments', entry);

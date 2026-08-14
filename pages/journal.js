@@ -22,15 +22,21 @@
   const { el } = window.LH3.utils.dom;
 
   function buildEntry(e, isAdmin, rerender) {
-    return el('div', { className: 'journal-entry kind-' + (e.kind || 'stat') }, [
+    const hasReport = !!e.payload;
+    return el('div', {
+      className: 'journal-entry kind-' + (e.kind || 'stat') + (hasReport ? ' clickable' : ''),
+      onClick: hasReport ? () => window.LH3.components.matchReport.open(e) : null,
+    }, [
       el('div', { className: 'journal-icon' }, [e.icon]),
       el('div', { style: { flex: '1' } }, [
         el('div', { className: 'journal-title' }, [e.title]),
         el('div', { className: 'journal-text' }, [e.text]),
+        hasReport ? el('div', { className: 'journal-more' }, ['Voir le rapport complet →']) : null,
       ]),
       isAdmin ? el('button', {
         className: 'btn btn-sm btn-ghost', title: 'Supprimer cette brève',
-        onClick: async () => {
+        onClick: async (ev) => {
+          ev.stopPropagation();
           const res = await window.LH3.services.journalService.removeEntry(e.id);
           if (!res.ok) window.LH3.components.toast.show(res.reason, 'error');
           else rerender();
@@ -68,9 +74,16 @@
     const allEntries = window.LH3.services.journalService.listEntries();
     const matches = window.LH3.services.seasonService.listMatches();
 
+    const infoPopover = el('div', { className: 'info-popover hidden' }, [
+      'Chaque journée a deux sections : ',
+      el('b', {}, ['📰 Dépêche du jour']), ' — ce que le club génère automatiquement (stats, récompenses, rapports avant/après déclenchés par l\'admin), cliquable pour un rapport complet — et ',
+      el('b', {}, ['💬 Commentaires']), ' — le fil libre de tout le monde, avant et après le match. Rien n\'est jamais supprimé d\'une journée passée.',
+    ]);
+    const infoIcon = el('span', { className: 'info-hint', onClick: (e) => { e.stopPropagation(); infoPopover.classList.toggle('hidden'); } }, ['ⓘ']);
+
     root.innerHTML = '';
     root.appendChild(el('div', { className: 'page-header' }, [
-      el('h1', {}, ['📰 Journal du Club']),
+      el('h1', {}, ['📰 Journal du Club ', el('span', { className: 'info-hint-wrap' }, [infoIcon, infoPopover])]),
       el('p', {}, ['Le récap de chaque journée — les commentaires de tout le monde d\'un côté, la dépêche officielle de l\'autre. Rien n\'est jamais effacé.']),
     ]));
 

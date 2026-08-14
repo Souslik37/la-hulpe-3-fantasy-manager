@@ -93,6 +93,11 @@ create table journal (
   title text,
   text text,
   kind text,
+  -- Données structurées optionnelles pour un affichage riche (voir
+  -- components/matchReport.js) : consensus des pronostics, stats prédites
+  -- vs réelles, marqueurs, citations... `text` reste le repli simple pour
+  -- les entrées qui n'en ont pas (ex: les 7 brèves auto de data/events.js).
+  payload jsonb,
   created_at timestamptz not null default now()
 );
 
