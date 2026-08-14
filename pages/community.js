@@ -97,8 +97,8 @@
         el('div', {}, ['Pas encore assez de données.']),
       ]);
     }
-    // Tri par consensus décroissant : les placements les plus unanimes en premier, plus fun à lire.
-    rows.sort((a, b) => b.breakdown.top.pct - a.breakdown.top.pct);
+    // Tri alphabétique : une liste de roster à consulter, pas un classement.
+    rows.sort((a, b) => a.player.name.localeCompare(b.player.name, 'fr'));
 
     const totalManagers = rows[0].breakdown.totalManagers;
     const list = el('div', {}, rows.map(({ player, breakdown }) => {

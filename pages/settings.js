@@ -62,12 +62,12 @@
         const file = e.target.files[0];
         if (!file) return;
         try {
-          const dataUri = await window.LH3.utils.oldPhoto.applyFilter(file);
+          const dataUri = await window.LH3.utils.imageResize.toDataUri(file);
           coach.avatarUrl = dataUri;
           renderAvatarPreview();
-          window.LH3.components.toast.show('Photo transformée — clique "Enregistrer" pour la garder ✅', 'success');
+          window.LH3.components.toast.show('Photo mise à jour — clique "Enregistrer" pour la garder ✅', 'success');
         } catch (err) {
-          console.error('[settings] échec du filtre photo', err);
+          console.error('[settings] échec du traitement photo', err);
           window.LH3.components.toast.show('Impossible de traiter cette photo — réessaie avec une autre.', 'error');
         }
       },
@@ -78,7 +78,7 @@
       avatarPreview,
       avatarFileInput,
       el('div', { className: 'field-hint' }, [
-        'Choisis une photo (la tienne, pourquoi pas) — elle est automatiquement transformée en vieille photo de coach retrouvée dans les archives du club (sépia, grain). Tout se passe dans ton navigateur, rien n\'est envoyé nulle part.',
+        'Choisis une photo (la tienne, pourquoi pas) pour ton coach. Tout se passe dans ton navigateur, rien n\'est envoyé nulle part.',
       ]),
     ]);
 

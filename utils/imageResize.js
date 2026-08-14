@@ -2,9 +2,8 @@
  * La Hulpe 3 Fantasy Manager — Redimensionnement d'image générique
  *
  * Recadre en carré + compresse une image choisie par l'utilisateur en
- * data URI JPEG, pour la stocker directement dans un champ avatar_url (pas
- * de vieillissement/filtre ici, voir utils/oldPhoto.js pour ça — juste un
- * import propre et léger, sans dépendre d'un hébergement externe).
+ * data URI JPEG, pour la stocker directement dans un champ avatar_url — un
+ * import propre et léger, sans dépendre d'un hébergement externe.
  */
 (function () {
   window.LH3 = window.LH3 || {};
