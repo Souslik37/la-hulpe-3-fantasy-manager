@@ -133,6 +133,110 @@
   }
 
   /**
+   * "Rôles" fun du rapport avant-match — un petit portrait par style de
+   * pronostic, calculés sur les pronostics déjà soumis. Toujours basés sur
+   * un classement (le plus/le moins) plutôt qu'un seuil fixe : jamais de
+   * rôle vide faute de "bonne réponse", il y a toujours un premier/dernier.
+   * Demande au moins 2 pronostics pour être fun (sinon tout le monde "gagne"
+   * chaque rôle tout seul).
+   */
+  function computePreMatchRoles(submitted, state) {
+    if (submitted.length < 2) return [];
+    const name = (id) => managerName(state, id);
+    const withStats = submitted.map((r) => ({
+      r, total: r.score_for + r.score_against, gap: Math.abs(r.score_for - r.score_against),
+    }));
+    const roles = [];
+
+    const byGap = withStats.slice().sort((a, b) => b.gap - a.gap)[0];
+    roles.push({ icon: '🔥', name: 'Le Téméraire', manager: name(byGap.r.manager_id), detail: `${byGap.gap} pts d'écart prédits (${byGap.r.score_for}–${byGap.r.score_against})` });
+
+    const byMinTotal = withStats.slice().sort((a, b) => a.total - b.total)[0];
+    roles.push({ icon: '🗼', name: 'La Petite Tour Eiffel', manager: name(byMinTotal.r.manager_id), detail: `${byMinTotal.total} points au total prédits` });
+
+    const byMaxTotal = withStats.slice().sort((a, b) => b.total - a.total)[0];
+    roles.push({ icon: '💣', name: 'Le Bombardier', manager: name(byMaxTotal.r.manager_id), detail: `${byMaxTotal.total} points au total prédits` });
+
+    const byScorerCount = submitted.slice().sort((a, b) => (b.try_scorers || []).length - (a.try_scorers || []).length)[0];
+    const scorerCount = (byScorerCount.try_scorers || []).length;
+    if (scorerCount > 0) {
+      roles.push({ icon: '🎯', name: 'Le Sniper', manager: name(byScorerCount.manager_id), detail: `${scorerCount} marqueur${scorerCount > 1 ? 's' : ''} coché${scorerCount > 1 ? 's' : ''}` });
+    }
+
+    const avgFor = withStats.reduce((s, x) => s + x.r.score_for, 0) / submitted.length;
+    const avgAgainst = withStats.reduce((s, x) => s + x.r.score_against, 0) / submitted.length;
+    const withDistToAvg = withStats.map((x) => ({ ...x, distToAvg: Math.abs(x.r.score_for - avgFor) + Math.abs(x.r.score_against - avgAgainst) })).sort((a, b) => a.distToAvg - b.distToAvg);
+    roles.push({ icon: '🐑', name: 'Le Mouton', manager: name(withDistToAvg[0].r.manager_id), detail: 'Pronostic le plus proche de la moyenne du groupe' });
+    const electron = withDistToAvg[withDistToAvg.length - 1];
+    if (electron.r.manager_id !== withDistToAvg[0].r.manager_id) {
+      roles.push({ icon: '🦄', name: 'L\'Électron Libre', manager: name(electron.r.manager_id), detail: 'Pronostic le plus éloigné des autres' });
+    }
+
+    const bySubmitTime = submitted.slice().sort((a, b) => a.submitted_at.localeCompare(b.submitted_at));
+    roles.push({ icon: '🌅', name: 'Le Premier de Classe', manager: name(bySubmitTime[0].manager_id), detail: 'Premier pronostic envoyé' });
+    const last = bySubmitTime[bySubmitTime.length - 1];
+    if (last.manager_id !== bySubmitTime[0].manager_id) {
+      roles.push({ icon: '🐌', name: 'Le Dernier Moment', manager: name(last.manager_id), detail: 'Dernier pronostic envoyé' });
+    }
+
+    return roles;
+  }
+
+  /**
+   * "Rôles" fun du rapport après-match — cette fois sur qui avait raison.
+   * Même principe que computePreMatchRoles : "le plus proche de" plutôt
+   * qu'un seuil, donc toujours un gagnant même un jour où personne n'a
+   * rien deviné d'exact (voir Le Voyant / Le Sang-Froid).
+   */
+  function computePostMatchRoles(graded, result, state) {
+    if (graded.length < 2) return [];
+    const name = (id) => managerName(state, id);
+    const withDist = graded.map((r) => ({ r, dist: Math.abs(r.score_for - result.scoreFor) + Math.abs(r.score_against - result.scoreAgainst) }))
+      .sort((a, b) => a.dist - b.dist);
+    const roles = [];
+
+    const voyant = withDist[0];
+    roles.push({
+      icon: '🔮', name: 'Le Voyant', manager: name(voyant.r.manager_id),
+      detail: voyant.dist === 0 ? 'Score exact trouvé !' : `À ${voyant.dist} pt${voyant.dist > 1 ? 's' : ''} du score réel (${voyant.r.score_for}–${voyant.r.score_against})`,
+    });
+
+    const sangFroid = withDist.find((x) => x.r.manager_id !== voyant.r.manager_id);
+    if (sangFroid) {
+      roles.push({ icon: '🧊', name: 'Le Sang-Froid', manager: name(sangFroid.r.manager_id), detail: `À ${sangFroid.dist} pt${sangFroid.dist > 1 ? 's' : ''} du score réel` });
+    }
+
+    const byScorerCorrect = graded.slice().sort((a, b) => (b.breakdown.correctScorers || []).length - (a.breakdown.correctScorers || []).length)[0];
+    const correctCount = (byScorerCorrect.breakdown.correctScorers || []).length;
+    if (correctCount > 0) {
+      roles.push({ icon: '🎯', name: 'Sniper confirmé', manager: name(byScorerCorrect.manager_id), detail: `${correctCount} marqueur${correctCount > 1 ? 's' : ''} correctement deviné${correctCount > 1 ? 's' : ''}` });
+    }
+
+    if (graded.length >= 3) {
+      const grandEcart = withDist[withDist.length - 1];
+      if (grandEcart.r.manager_id !== voyant.r.manager_id) {
+        roles.push({ icon: '🎢', name: 'Le Grand Écart', manager: name(grandEcart.r.manager_id), detail: `À ${grandEcart.dist} pts du score réel (${grandEcart.r.score_for}–${grandEcart.r.score_against})` });
+      }
+    }
+
+    const bothLucky = graded.filter((r) => r.breakdown.motmCorrect && r.breakdown.blunderCorrect);
+    const oneLucky = graded.filter((r) => r.breakdown.motmCorrect || r.breakdown.blunderCorrect);
+    const luckyPool = bothLucky.length ? bothLucky : oneLucky;
+    if (luckyPool.length) {
+      const winner = luckyPool[0];
+      roles.push({
+        icon: '🍀', name: 'Le Chanceux du Jour', manager: name(winner.manager_id),
+        detail: bothLucky.length ? 'Homme du match ET boulette devinés' : (winner.breakdown.motmCorrect ? 'Homme du match deviné' : 'Boulette devinée'),
+      });
+    }
+
+    const byPe = graded.slice().sort((a, b) => (a.pe_earned || 0) - (b.pe_earned || 0))[0];
+    roles.push({ icon: '🤡', name: 'Le Boulet du Jour', manager: name(byPe.manager_id), detail: `${byPe.pe_earned || 0} PE sur cette journée` });
+
+    return roles;
+  }
+
+  /**
    * Admin uniquement (RLS predictions n'autorise que l'admin à tout lire).
    * Compile les pronostics déjà soumis + les commentaires "avant-match" en
    * une brève de journal — `payload` structuré pour un affichage riche
@@ -173,16 +277,14 @@
       const totalTriesList = submitted.map((r) => r.total_tries).filter((n) => n !== null && n !== undefined);
       const avg = (list) => Math.round(list.reduce((a, b) => a + b, 0) / list.length);
       const maxTotalPoints = Math.max(...totalPointsList);
-      const boldest = submitted.find((r) => (r.score_for + r.score_against) === maxTotalPoints);
 
       payload = Object.assign(payload, {
         resultSplit: { V: pct(counts.V), N: pct(counts.N), D: pct(counts.D) },
         avgTotalPoints: avg(totalPointsList),
         maxTotalPoints,
-        boldestPredictor: boldest ? managerName(state, boldest.manager_id) : null,
-        boldestScore: boldest ? boldest.score_for + ' – ' + boldest.score_against : null,
         avgTotalTries: totalTriesList.length ? avg(totalTriesList) : null,
         topScorers,
+        roles: computePreMatchRoles(submitted, state),
       });
     }
     if (comments.length) parts.push('Dans les couloirs du club : ' + quoteLines(comments, state.managers).join(' '));
@@ -240,6 +342,7 @@
       resultCorrectCount,
       resultCorrectPct: graded.length ? Math.round((resultCorrectCount / graded.length) * 100) : null,
       exactScoreWinners,
+      roles: computePostMatchRoles(graded, result, state),
       comments: comments.map((c) => ({ author: managerName(state, c.managerId), text: c.text })),
     };
 

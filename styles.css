@@ -738,6 +738,17 @@ textarea { resize: vertical; min-height: 70px; }
 .report-quote-text { font-size: 13px; font-style: italic; color: var(--text-1); line-height: 1.45; }
 .report-quote-author { font-size: 11px; color: var(--text-2); font-weight: 700; margin-top: 4px; }
 
+.report-roles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 4px; }
+.role-card {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--bg-3); border-radius: var(--radius-sm); padding: 11px 12px;
+  animation: slide-in .3s var(--ease-out) backwards;
+}
+.role-ic { font-size: 21px; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+.role-name { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: var(--text-2); }
+.role-manager { font-size: 14px; font-weight: 800; color: var(--text-0); margin-top: 1px; }
+.role-detail { font-size: 11px; color: var(--text-2); margin-top: 2px; line-height: 1.35; }
+
 /* ============================================================
    Standings
    ============================================================ */

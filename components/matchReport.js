@@ -53,6 +53,25 @@
     ]);
   }
 
+  function roleCard(role) {
+    return el('div', { className: 'role-card' }, [
+      el('div', { className: 'role-ic' }, [role.icon]),
+      el('div', {}, [
+        el('div', { className: 'role-name' }, [role.name]),
+        el('div', { className: 'role-manager' }, [role.manager]),
+        el('div', { className: 'role-detail' }, [role.detail]),
+      ]),
+    ]);
+  }
+
+  function rolesBlock(roles, title) {
+    if (!roles || !roles.length) return null;
+    return el('div', {}, [
+      el('div', { className: 'report-section-title' }, [title]),
+      el('div', { className: 'report-roles-grid' }, roles.map(roleCard)),
+    ]);
+  }
+
   function renderPreMatch(p) {
     const hasStats = p.predictionsCount > 0;
     return el('div', {}, [
@@ -75,9 +94,7 @@
           el('div', { className: 'report-section-title' }, ['🎯 Marqueurs les plus attendus']),
           el('div', { className: 'report-badge-row' }, p.topScorers.map((s) => el('span', { className: 'badge badge-green' }, [s.name + ' · ' + s.count]))),
         ]) : null,
-        p.boldestPredictor ? el('div', { className: 'report-callout' }, [
-          '🔮 Le plus optimiste (ou téméraire) : ', el('b', {}, [p.boldestPredictor]), ' voit ça finir ' + p.boldestScore + '.',
-        ]) : null,
+        rolesBlock(p.roles, '🎭 Les rôles de la semaine'),
       ]) : null,
       commentsBlock(p.comments, '💬 Dans les couloirs du club'),
     ].filter(Boolean));
@@ -107,6 +124,7 @@
       p.exactScoreWinners && p.exactScoreWinners.length ? el('div', { className: 'report-callout' }, [
         '🎯 Score exact trouvé par ', el('b', {}, [p.exactScoreWinners.join(', ')]), ' — respect.',
       ]) : null,
+      rolesBlock(p.roles, '🎭 Les rôles de la semaine'),
       commentsBlock(p.comments, '🗣️ Les réactions du club'),
     ].filter(Boolean));
   }
