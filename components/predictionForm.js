@@ -75,6 +75,17 @@
     const pe = window.LH3.data.CONFIG.pe;
     const maxScorers = window.LH3.data.CONFIG.maxTryScorerPicks;
     const scorerHintText = `+${pe.perCorrectTryScorer} PE si le joueur marque vraiment, ${pe.perWrongTryScorer} PE si tu coches un joueur qui ne marque pas — maximum ${maxScorers} marqueurs par pronostic, vise juste plutôt que de cocher large.`;
+    // Popover au clic plutôt qu'un simple `title` (jamais déclenché par un tap
+    // sur mobile, et rien ne se passe pour qui clique au lieu de survoler) —
+    // se rouvre/referme au clic sur l'icône elle-même, pas de fermeture au
+    // clic extérieur pour éviter d'accumuler des listeners sur `document` à
+    // chaque re-rendu du formulaire.
+    const scorerInfoPopover = el('div', { className: 'info-popover hidden' }, [scorerHintText]);
+    const scorerInfoIcon = el('span', {
+      className: 'info-hint',
+      onClick: (e) => { e.stopPropagation(); scorerInfoPopover.classList.toggle('hidden'); },
+    }, ['ⓘ']);
+    const scorerInfoIconWrap = el('span', { className: 'info-hint-wrap' }, [scorerInfoIcon, scorerInfoPopover]);
     const scorerPicker = el('div', { className: 'scorer-picker' });
     const scorerCount = isPrediction ? el('div', { className: 'muted small' }) : null;
     function refreshScorerCount() {
@@ -132,12 +143,11 @@
         el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' } }, [
           el('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } }, [
             el('label', {}, ['Joueurs qui marqueront un essai']),
-            isPrediction ? el('span', { className: 'info-hint', title: scorerHintText }, ['ⓘ']) : null,
+            isPrediction ? scorerInfoIconWrap : null,
           ]),
           scorerCount,
         ]),
         scorerPicker,
-        isPrediction ? el('div', { className: 'field-hint', style: { marginTop: '6px' } }, [scorerHintText]) : null,
       ]),
       el('div', { className: 'field' }, [
         el('label', {}, ['Homme du match']),
