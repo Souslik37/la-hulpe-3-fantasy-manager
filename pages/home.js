@@ -175,7 +175,7 @@
       ]),
       el('div', { className: 'mini-leaderboard' }, managers.map((m, i) => el('div', { className: 'mini-leaderboard-row' + (m.id === manager.id ? ' me' : '') }, [
         el('span', { className: 'rank-badge' + (i === 0 ? ' r1' : i === 1 ? ' r2' : i === 2 ? ' r3' : '') }, [String(i + 1)]),
-        el('span', { className: 'name' }, [m.name]),
+        el('span', { className: 'name' }, [window.LH3.services.managerService.displayName(m)]),
         el('span', { className: 'pe' }, [(m.pe || 0) + ' PE']),
       ]))),
     ]);
@@ -186,7 +186,7 @@
 
     root.innerHTML = '';
     root.appendChild(el('div', { className: 'page-header' }, [
-      el('h1', {}, ['Salut, ' + manager.name + ' 👋']),
+      el('h1', {}, ['Salut, ' + window.LH3.services.managerService.displayName(manager) + ' 👋']),
       el('p', {}, ['Voici où en est ton aventure avec le club cette saison.']),
     ]));
 

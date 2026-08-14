@@ -19,6 +19,15 @@
     return el('span', { className: 'rank-badge ' + cls }, [String(i + 1)]);
   }
 
+  /** Nom du coach en avant (le vrai nom de connexion en petit dessous, s'il diffère). */
+  function managerCell(manager) {
+    const dn = window.LH3.services.managerService.displayName(manager);
+    return el('td', {}, [
+      el('div', { style: { fontWeight: '700' } }, [dn]),
+      dn !== manager.name ? el('div', { className: 'muted', style: { fontSize: '11px' } }, [manager.name]) : null,
+    ]);
+  }
+
   function buildPeTable() {
     const managers = window.LH3.services.managerService.listManagers();
     const active = window.LH3.services.managerService.getActiveManager();
@@ -34,11 +43,10 @@
     if (!rows.length) return el('div', { className: 'empty-state' }, [el('div', { className: 'ic' }, ['📊']), el('div', {}, ['Aucun manager pour le moment.'])]);
 
     const table = el('table', { className: 'standings-table' }, [
-      el('thead', {}, [el('tr', {}, ['#', 'Manager', 'Coach', 'PE', 'Prestige', 'Pronostics faits'].map((h) => el('th', {}, [h])))]),
+      el('thead', {}, [el('tr', {}, ['#', 'Manager', 'PE', 'Prestige', 'Pronostics faits'].map((h) => el('th', {}, [h])))]),
       el('tbody', {}, rows.map((r, i) => el('tr', { className: active && r.manager.id === active.id ? 'me' : '' }, [
         el('td', {}, [rankBadge(i)]),
-        el('td', { style: { fontWeight: '700' } }, [r.manager.name]),
-        el('td', { className: 'muted' }, [r.manager.coach && r.manager.coach.name || '—']),
+        managerCell(r.manager),
         el('td', { style: { fontWeight: '800', color: 'var(--green-text)' } }, [String(r.pe)]),
         el('td', {}, [r.prestige.name]),
         el('td', {}, [String(r.predictionsMade)]),
@@ -65,7 +73,7 @@
       el('thead', {}, [el('tr', {}, ['#', 'Manager', 'Note d\'équipe', 'Meilleur joueur'].map((h) => el('th', {}, [h])))]),
       el('tbody', {}, rows.map((r, i) => el('tr', { className: active && r.manager.id === active.id ? 'me' : '' }, [
         el('td', {}, [rankBadge(i)]),
-        el('td', { style: { fontWeight: '700' } }, [r.manager.name]),
+        managerCell(r.manager),
         el('td', { style: { fontWeight: '800' } }, [String(r.overall)]),
         el('td', { className: 'muted' }, [r.best ? `${r.best.name} (${r.best.overall})` : '—']),
       ]))),

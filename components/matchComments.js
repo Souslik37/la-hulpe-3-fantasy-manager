@@ -29,7 +29,7 @@
         const author = window.LH3.services.managerService.getManager(c.managerId);
         list.appendChild(el('div', { className: 'boost-row' }, [
           el('div', {}, [
-            el('div', { style: { fontWeight: '700', fontSize: '12.5px' } }, [author ? author.name : 'Un manager']),
+            el('div', { style: { fontWeight: '700', fontSize: '12.5px' } }, [author ? window.LH3.services.managerService.displayName(author) : 'Un manager']),
             el('div', { className: 'small' }, [c.text]),
           ]),
           c.managerId === manager.id ? el('button', {

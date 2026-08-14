@@ -61,7 +61,7 @@
           icon: '🧢',
           kind: 'award',
           title: 'Coach de la semaine',
-          text: `${winner.coachName || winner.managerName} est désigné Coach de la Semaine pour sa lecture du match face à ${ctx.match.opponent}.`,
+          text: `${winner.managerName} est désigné Coach de la Semaine pour sa lecture du match face à ${ctx.match.opponent}.`,
         };
       },
     },

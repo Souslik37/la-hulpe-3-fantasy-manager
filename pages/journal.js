@@ -51,7 +51,7 @@
     return el('div', { className: 'journal-entry kind-fun' }, [
       el('div', { className: 'journal-icon' }, [c.phase === 'post' ? '🗣️' : '📋']),
       el('div', {}, [
-        el('div', { className: 'journal-title' }, [author ? author.name : 'Un manager']),
+        el('div', { className: 'journal-title' }, [author ? window.LH3.services.managerService.displayName(author) : 'Un manager']),
         el('div', { className: 'journal-text' }, [c.text]),
       ]),
     ]);

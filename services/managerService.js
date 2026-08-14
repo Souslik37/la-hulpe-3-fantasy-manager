@@ -58,6 +58,18 @@
     return state.activeManagerId ? state.managers[state.activeManagerId] : null;
   }
 
+  /**
+   * Nom à afficher partout où l'identité d'un manager est montrée pour le
+   * fun (commentaires, journal, communauté, classements...) : le nom du
+   * coach prime sur le nom de connexion, qui ne sert qu'à se reconnecter
+   * (voir Paramètres) — pas censé être l'identité "sociale" de l'app.
+   * Replie sur le nom de connexion tant que le coach n'a pas de nom.
+   */
+  function displayName(manager) {
+    const coachName = manager.coach && manager.coach.name && manager.coach.name.trim();
+    return coachName || manager.name;
+  }
+
   function listManagers() {
     const state = window.LH3.services.stateService.getState();
     return Object.values(state.managers).sort((a, b) => a.name.localeCompare(b.name));
@@ -249,7 +261,7 @@
   function randomManagementStyle() { return pick(STYLES); }
 
   window.LH3.services.managerService = {
-    getManager, getActiveManager, listManagers, removeManager,
+    getManager, getActiveManager, listManagers, removeManager, displayName,
     updateCoach, randomCoach, defaultSquad, emptyCoach, searchAccents,
     randomJob, randomAccent, randomStory, randomQuote, randomManagementStyle,
     rolesFor, toggleRole,

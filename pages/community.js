@@ -19,15 +19,17 @@
   function openManagerModal(manager) {
     const prestige = window.LH3.services.peService.prestigeInfo(manager);
     const overall = window.LH3.services.playerService.teamOverall(manager);
+    const dn = window.LH3.services.managerService.displayName(manager);
 
     const body = el('div', {}, [
       el('div', { style: { textAlign: 'center', marginBottom: '16px' } }, [
         (() => {
           const w = el('div');
-          w.innerHTML = window.LH3.utils.avatar.renderAvatar(manager.name, manager.coach && manager.coach.avatarUrl, 64);
+          w.innerHTML = window.LH3.utils.avatar.renderAvatar(dn, manager.coach && manager.coach.avatarUrl, 64);
           return w.firstElementChild;
         })(),
-        el('div', { style: { fontWeight: '800', fontSize: '16px', marginTop: '8px' } }, [manager.name]),
+        el('div', { style: { fontWeight: '800', fontSize: '16px', marginTop: '8px' } }, [dn]),
+        dn !== manager.name ? el('div', { className: 'muted small' }, [manager.name]) : null,
         el('div', { style: { display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '8px', flexWrap: 'wrap' } }, [
           el('span', { className: 'badge badge-green' }, [String(overall) + ' overall d\'équipe']),
           el('span', { className: 'badge' }, ['🎖️ ' + prestige.name]),
@@ -47,21 +49,22 @@
       window.LH3.components.squadPitch.renderBench(manager, { readOnly: true }),
     ]);
 
-    window.LH3.components.modal.open({ title: manager.name, body, actions: [{ label: 'Fermer', className: 'btn-primary' }] });
+    window.LH3.components.modal.open({ title: dn, body, actions: [{ label: 'Fermer', className: 'btn-primary' }] });
   }
 
   function buildManagerCard(manager) {
     const overall = window.LH3.services.playerService.teamOverall(manager);
     const prestige = window.LH3.services.peService.prestigeInfo(manager);
+    const dn = window.LH3.services.managerService.displayName(manager);
 
     const card = el('div', { className: 'card manager-tile', onClick: () => openManagerModal(manager) }, [
       (() => {
         const w = el('div');
-        w.innerHTML = window.LH3.utils.avatar.renderAvatar(manager.name, manager.coach && manager.coach.avatarUrl, 48);
+        w.innerHTML = window.LH3.utils.avatar.renderAvatar(dn, manager.coach && manager.coach.avatarUrl, 48);
         return w.firstElementChild;
       })(),
-      el('div', { style: { marginTop: '10px', fontWeight: '750', fontSize: '14px' } }, [manager.name]),
-      el('div', { className: 'muted small' }, [manager.coach && manager.coach.name ? 'Coach ' + manager.coach.name : 'Pas encore de coach']),
+      el('div', { style: { marginTop: '10px', fontWeight: '750', fontSize: '14px' } }, [dn]),
+      el('div', { className: 'muted small' }, [dn !== manager.name ? manager.name : 'Pas encore de coach']),
       el('div', { style: { display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' } }, [
         el('span', { className: 'badge badge-green' }, [String(overall)]),
         el('span', { className: 'badge' }, ['🎖️ ' + prestige.name]),

@@ -71,17 +71,20 @@
       const prestige = window.LH3.services.peService.prestigeInfo(manager);
       right.appendChild(el('div', { className: 'pe-chip' }, ['✨ ' + (manager.pe || 0) + ' PE']));
       right.appendChild(el('div', { className: 'prestige-chip' }, ['🎖️ ' + prestige.name]));
-      right.appendChild(el('div', {
-        className: 'manager-pill',
-        onClick: () => { window.location.hash = '#settings'; },
-      }, [
-        (() => {
-          const wrap = el('span', {});
-          wrap.innerHTML = window.LH3.utils.avatar.renderAvatar(manager.name, manager.coach && manager.coach.avatarUrl, 26);
-          return wrap;
-        })(),
-        el('span', { className: 'name' }, [manager.name]),
-      ]));
+      right.appendChild((() => {
+        const dn = window.LH3.services.managerService.displayName(manager);
+        return el('div', {
+          className: 'manager-pill',
+          onClick: () => { window.location.hash = '#settings'; },
+        }, [
+          (() => {
+            const wrap = el('span', {});
+            wrap.innerHTML = window.LH3.utils.avatar.renderAvatar(dn, manager.coach && manager.coach.avatarUrl, 26);
+            return wrap;
+          })(),
+          el('span', { className: 'name' }, [dn]),
+        ]);
+      })());
     }
 
     topbar.appendChild(right);

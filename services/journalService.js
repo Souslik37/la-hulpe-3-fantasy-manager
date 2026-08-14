@@ -29,8 +29,7 @@
 
         return {
           managerId: m.id,
-          managerName: m.name,
-          coachName: m.coach && m.coach.name,
+          managerName: window.LH3.services.managerService.displayName(m),
           peEarned: breakdown.peEarned,
           breakdown,
           prediction,
@@ -124,7 +123,8 @@
   }
 
   function managerName(state, managerId) {
-    return (state.managers[managerId] && state.managers[managerId].name) || 'un manager';
+    const m = state.managers[managerId];
+    return (m && window.LH3.services.managerService.displayName(m)) || 'un manager';
   }
 
   function getPlayerName(playerId) {
