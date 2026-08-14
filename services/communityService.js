@@ -45,11 +45,15 @@
     };
   }
 
-  /** Un objet { player, breakdown } par joueur du roster, pour la page Communauté. */
+  /**
+   * Un objet { player, breakdown } par joueur du roster, pour la page
+   * Communauté — TOUS les joueurs, y compris ceux jamais titularisés (leur
+   * breakdown.entries est alors vide) : la liste doit rester un roster
+   * complet, pas un classement qui les exclurait.
+   */
   function allPositionBreakdowns() {
     return window.LH3.services.playerService.listPlayers()
-      .map((p) => ({ player: p, breakdown: positionBreakdown(p.id) }))
-      .filter((x) => x.breakdown.top);
+      .map((p) => ({ player: p, breakdown: positionBreakdown(p.id) }));
   }
 
   window.LH3.services.communityService = { positionBreakdown, allPositionBreakdowns };
