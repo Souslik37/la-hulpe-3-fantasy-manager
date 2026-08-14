@@ -18,25 +18,28 @@
   }
 
   /**
-   * Répartition des postes occupés par un joueur donné, tous managers
-   * confondus. Les pourcentages sont calculés sur le nombre TOTAL de
-   * managers (pas seulement ceux qui l'ont dans leur effectif) : un joueur
-   * absent de l'effectif compte comme "pas placé", ce qui reflète bien la
-   * question "quelle part des managers l'ont mis à tel poste".
+   * Répartition des postes occupés par un joueur donné, parmi les managers
+   * qui l'ont titularisé quelque part. Les pourcentages sont calculés sur ce
+   * sous-groupe (pas sur le total de la ligue) : un joueur titularisé par un
+   * seul manager, à un seul poste, affiche 100% sur ce poste — pas dilué par
+   * les managers qui ne l'ont pas du tout titularisé.
    */
   function positionBreakdown(playerId) {
     const managers = window.LH3.services.managerService.listManagers();
     const counts = {};
+    let startedCount = 0;
     managers.forEach((m) => {
       const label = positionForManager(m, playerId);
       if (!label) return;
       counts[label] = (counts[label] || 0) + 1;
+      startedCount++;
     });
     const entries = Object.entries(counts)
-      .map(([label, count]) => ({ label, count, pct: managers.length ? Math.round((count / managers.length) * 100) : 0 }))
+      .map(([label, count]) => ({ label, count, pct: startedCount ? Math.round((count / startedCount) * 100) : 0 }))
       .sort((a, b) => b.count - a.count);
     return {
       totalManagers: managers.length,
+      startedCount,
       entries,
       top: entries[0] || null,
     };
