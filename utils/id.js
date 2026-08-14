@@ -11,5 +11,10 @@
     return (prefix ? prefix + '-' : '') + time + rand;
   }
 
-  window.LH3.utils.id = { uid };
+  /** Pour les colonnes Postgres de type `uuid` (ex: match_comments.id, journal.id) — uid() ne convient pas, son format n'est pas un UUID valide. */
+  function uuid() {
+    return crypto.randomUUID();
+  }
+
+  window.LH3.utils.id = { uid, uuid };
 })();

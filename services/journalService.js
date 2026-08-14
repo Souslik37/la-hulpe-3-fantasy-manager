@@ -71,7 +71,7 @@
       }
       if (!entry) return;
       newEntries.push({
-        id: window.LH3.utils.id.uid('news'),
+        id: window.LH3.utils.id.uuid(),
         generatorId: generator.id,
         matchId: context.match.id,
         matchday: context.match.matchday,
@@ -147,7 +147,7 @@
     if (comments.length) parts.push('Dans les couloirs du club : ' + quoteLines(comments, state.managers).join(' '));
 
     const entry = {
-      id: window.LH3.utils.id.uid('news'),
+      id: window.LH3.utils.id.uuid(),
       generatorId: 'pre-match-report',
       matchId: match.id,
       matchday: match.matchday,
@@ -173,7 +173,7 @@
     if (!comments.length) return { ok: false, reason: 'Aucun commentaire après-match pour le moment.' };
 
     const entry = {
-      id: window.LH3.utils.id.uid('news'),
+      id: window.LH3.utils.id.uuid(),
       generatorId: 'post-match-comments',
       matchId: match.id,
       matchday: match.matchday,

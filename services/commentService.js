@@ -24,7 +24,7 @@
 
     const manager = window.LH3.services.managerService.getActiveManager();
     const comment = {
-      id: window.LH3.utils.id.uid('comment'),
+      id: window.LH3.utils.id.uuid(),
       matchId, managerId: manager.id, phase, text,
       createdAt: new Date().toISOString(),
     };

@@ -62,7 +62,7 @@
 
     const suggestion = attributeKey ? ` Suggestion : à mettre sur ${attributeLabel(attributeKey)}, mais libre à chacun d'en faire ce qu'il veut.` : '';
     const entry = {
-      id: window.LH3.utils.id.uid('news'),
+      id: window.LH3.utils.id.uuid(),
       generatorId: 'club-event',
       matchId: null,
       matchday: null,

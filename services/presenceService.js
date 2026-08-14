@@ -78,7 +78,7 @@
     // Une seule brève générique, jamais de détail par manager (on ne pointe
     // personne du doigt — voir la page Communauté pour le même principe).
     const entry = {
-      id: window.LH3.utils.id.uid('news'),
+      id: window.LH3.utils.id.uuid(),
       generatorId: 'presence-bonus',
       matchId: null,
       matchday: null,
