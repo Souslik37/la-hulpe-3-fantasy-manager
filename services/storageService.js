@@ -63,6 +63,10 @@
     };
   }
 
+  function matchCommentRowToApp(row) {
+    return { id: row.id, matchId: row.match_id, managerId: row.manager_id, phase: row.phase, text: row.text, createdAt: row.created_at };
+  }
+
   /**
    * Charge tout ce dont l'app a besoin pour démarrer : roster, calendrier,
    * journal, tous les managers (classement/journal), et les pronostics du
@@ -71,7 +75,7 @@
    * noter une journée — voir scoringService.gradeAllPredictionsForMatch).
    */
   async function loadInitialState(activeManagerId) {
-    const [playersRes, matchesRes, journalRes, managersRes, predictionsRes, presenceRes, eventsRes] = await Promise.all([
+    const [playersRes, matchesRes, journalRes, managersRes, predictionsRes, presenceRes, eventsRes, commentsRes] = await Promise.all([
       client().from('players').select('*'),
       client().from('matches').select('*').order('matchday'),
       client().from('journal').select('*').order('created_at', { ascending: false }),
@@ -79,9 +83,10 @@
       client().from('predictions').select('*').eq('manager_id', activeManagerId),
       client().from('presence_periods').select('*').order('date'),
       client().from('club_events').select('*').order('date'),
+      client().from('match_comments').select('*').order('created_at'),
     ]);
 
-    for (const res of [playersRes, matchesRes, journalRes, managersRes, predictionsRes, presenceRes, eventsRes]) {
+    for (const res of [playersRes, matchesRes, journalRes, managersRes, predictionsRes, presenceRes, eventsRes, commentsRes]) {
       if (res.error) throw res.error;
     }
 
@@ -110,6 +115,7 @@
       journal: journalRes.data.map(journalRowToApp),
       presencePeriods: presenceRes.data.map(presencePeriodRowToApp),
       clubEvents: eventsRes.data.map(clubEventRowToApp),
+      matchComments: commentsRes.data.map(matchCommentRowToApp),
       meta: { createdAt: new Date().toISOString() },
     };
   }
@@ -216,6 +222,23 @@
     return !error;
   }
 
+  /** Ajoute un commentaire avant/après-match (le sien). */
+  async function insertMatchComment(comment) {
+    const { error } = await client().from('match_comments').insert({
+      id: comment.id, match_id: comment.matchId, manager_id: comment.managerId,
+      phase: comment.phase, text: comment.text, created_at: comment.createdAt,
+    });
+    if (error) console.error('[storageService] échec ajout commentaire', error);
+    return !error;
+  }
+
+  /** Retire un commentaire (le sien, ou n'importe lequel pour un admin). */
+  async function deleteMatchComment(id) {
+    const { error } = await client().from('match_comments').delete().eq('id', id);
+    if (error) console.error('[storageService] échec suppression commentaire', error);
+    return !error;
+  }
+
   /** Admin uniquement : ajoute une période d'assiduité. */
   async function insertPresencePeriod(period) {
     const { error } = await client().from('presence_periods').insert({
@@ -318,5 +341,6 @@
     insertMatch, deleteMatch,
     insertPresencePeriod, deletePresencePeriod,
     insertClubEvent, deleteClubEvent,
+    insertMatchComment, deleteMatchComment,
   };
 })();

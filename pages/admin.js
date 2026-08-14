@@ -176,6 +176,26 @@
     if (match.status === 'termine') {
       actions.push(el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmUnfinalizeMatch(match, rerender) }, ['Annuler résultat']));
     }
+    actions.push(el('button', {
+      className: 'btn btn-sm btn-ghost',
+      onClick: async (e) => {
+        const btn = e.target;
+        btn.disabled = true;
+        const res = await window.LH3.services.journalService.generatePreMatchReport(match.id);
+        btn.disabled = false;
+        window.LH3.components.toast.show(res.ok ? 'Rapport avant-match publié ✅' : res.reason, res.ok ? 'success' : 'error');
+      },
+    }, ['📋 Rapport avant']));
+    actions.push(el('button', {
+      className: 'btn btn-sm btn-ghost',
+      onClick: async (e) => {
+        const btn = e.target;
+        btn.disabled = true;
+        const res = await window.LH3.services.journalService.generatePostMatchComments(match.id);
+        btn.disabled = false;
+        window.LH3.components.toast.show(res.ok ? 'Rapport après-match publié ✅' : res.reason, res.ok ? 'success' : 'error');
+      },
+    }, ['💬 Rapport après']));
     actions.push(el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemoveMatch(match, rerender) }, ['Supprimer']));
 
     return el('div', { className: 'card', style: { display: 'grid', gridTemplateColumns: '50px 1.4fr 1fr 1fr auto', gap: '10px', alignItems: 'center', padding: '12px 16px', marginBottom: '8px' } }, [

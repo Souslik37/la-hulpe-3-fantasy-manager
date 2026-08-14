@@ -93,5 +93,101 @@
     return state.journal;
   }
 
-  window.LH3.services.journalService = { generateForMatchday, listEntries };
+  /** Retire une éventuelle entrée précédente du même generatorId pour cette journée (régénération idempotente). */
+  async function replaceGeneratedEntry(matchId, generatorId, entry) {
+    const state = window.LH3.services.stateService.getState();
+    const oldIds = state.journal.filter((e) => e.generatorId === generatorId && e.matchId === matchId).map((e) => e.id);
+    if (oldIds.length) {
+      state.journal = state.journal.filter((e) => !oldIds.includes(e.id));
+      await window.LH3.services.storageService.deleteJournalEntriesByIds(oldIds);
+    }
+    if (!entry) return;
+    state.journal.unshift(entry);
+    await window.LH3.services.storageService.saveJournalEntries([entry]);
+  }
+
+  function quoteLines(comments, managers) {
+    return comments.map((c) => '"' + c.text + '" — ' + ((managers[c.managerId] && managers[c.managerId].name) || 'un manager'));
+  }
+
+  /**
+   * Admin uniquement (RLS predictions n'autorise que l'admin à tout lire).
+   * Compile les pronostics déjà soumis (résultat, marqueurs les plus
+   * cochés) + les commentaires "avant-match" en une brève de journal.
+   */
+  async function generatePreMatchReport(matchId) {
+    const match = window.LH3.services.seasonService.getMatch(matchId);
+    if (!match) return { ok: false, reason: 'Match introuvable.' };
+
+    const rows = await window.LH3.services.storageService.loadPredictionsForMatch(matchId);
+    const submitted = rows.filter((r) => r.score_for !== null && r.score_against !== null);
+    const state = window.LH3.services.stateService.getState();
+    const comments = window.LH3.services.commentService.listComments(matchId, 'pre');
+
+    if (!submitted.length && !comments.length) {
+      return { ok: false, reason: 'Aucun pronostic ni commentaire pour le moment — reviens plus tard.' };
+    }
+
+    const parts = [];
+    if (submitted.length) {
+      const counts = { V: 0, N: 0, D: 0 };
+      submitted.forEach((r) => {
+        const d = window.LH3.services.predictionService.derive(r.score_for, r.score_against);
+        if (d.result) counts[d.result]++;
+      });
+      const pct = (n) => Math.round((n / submitted.length) * 100);
+      parts.push(`${submitted.length} pronostic${submitted.length > 1 ? 's' : ''} déjà soumis : ${pct(counts.V)}% misent sur la victoire, ${pct(counts.N)}% sur le nul, ${pct(counts.D)}% sur la défaite.`);
+
+      const scorerCounts = {};
+      submitted.forEach((r) => (r.try_scorers || []).forEach((id) => { scorerCounts[id] = (scorerCounts[id] || 0) + 1; }));
+      const topScorers = Object.entries(scorerCounts).sort((a, b) => b[1] - a[1]).slice(0, 3)
+        .map(([id, count]) => { const p = window.LH3.services.playerService.getPlayerBase(id); return (p ? p.name : 'un joueur') + ' (' + count + ')'; });
+      if (topScorers.length) parts.push('Marqueurs les plus attendus : ' + topScorers.join(', ') + '.');
+    }
+    if (comments.length) parts.push('Dans les couloirs du club : ' + quoteLines(comments, state.managers).join(' '));
+
+    const entry = {
+      id: window.LH3.utils.id.uid('news'),
+      generatorId: 'pre-match-report',
+      matchId: match.id,
+      matchday: match.matchday,
+      date: match.date,
+      icon: '📋',
+      title: 'Avant-match : La Hulpe 3 vs ' + match.opponent,
+      text: parts.join(' '),
+      kind: 'preview',
+      createdAt: new Date().toISOString(),
+    };
+    await replaceGeneratedEntry(matchId, 'pre-match-report', entry);
+    window.LH3.services.stateService.notify();
+    return { ok: true };
+  }
+
+  /** Admin uniquement. Compile les commentaires "après-match" en une brève (les stats/récompenses restent gérées par generateForMatchday). */
+  async function generatePostMatchComments(matchId) {
+    const match = window.LH3.services.seasonService.getMatch(matchId);
+    if (!match) return { ok: false, reason: 'Match introuvable.' };
+
+    const state = window.LH3.services.stateService.getState();
+    const comments = window.LH3.services.commentService.listComments(matchId, 'post');
+    if (!comments.length) return { ok: false, reason: 'Aucun commentaire après-match pour le moment.' };
+
+    const entry = {
+      id: window.LH3.utils.id.uid('news'),
+      generatorId: 'post-match-comments',
+      matchId: match.id,
+      matchday: match.matchday,
+      date: match.date,
+      icon: '💬',
+      title: 'Les réactions après La Hulpe 3 vs ' + match.opponent,
+      text: quoteLines(comments, state.managers).join(' '),
+      kind: 'fun',
+      createdAt: new Date().toISOString(),
+    };
+    await replaceGeneratedEntry(matchId, 'post-match-comments', entry);
+    window.LH3.services.stateService.notify();
+    return { ok: true };
+  }
+
+  window.LH3.services.journalService = { generateForMatchday, listEntries, generatePreMatchReport, generatePostMatchComments };
 })();

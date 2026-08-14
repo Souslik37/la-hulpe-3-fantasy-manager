@@ -72,6 +72,16 @@ create table predictions (
   primary key (manager_id, match_id)
 );
 
+-- ── Commentaires avant/après-match (libres, facultatifs) ────────────────────
+create table match_comments (
+  id uuid primary key default gen_random_uuid(),
+  match_id text not null references matches(id) on delete cascade,
+  manager_id uuid not null references managers(id) on delete cascade,
+  phase text not null check (phase in ('pre', 'post')),
+  text text not null,
+  created_at timestamptz not null default now()
+);
+
 -- ── Journal du Club (partagé, généré automatiquement) ───────────────────────
 create table journal (
   id uuid primary key default gen_random_uuid(),
@@ -128,6 +138,7 @@ alter table predictions enable row level security;
 alter table journal enable row level security;
 alter table presence_periods enable row level security;
 alter table club_events enable row level security;
+alter table match_comments enable row level security;
 
 -- Managers : tout le monde peut lire tout le monde (classement, capitaine
 -- fétiche...), mais chacun ne modifie que sa propre ligne.
@@ -179,6 +190,14 @@ create policy "club_events_admin_write" on club_events for all using (
   exists (select 1 from managers where id = auth.uid() and role = 'admin')
 );
 
+-- Commentaires de match : lecture publique, chacun gère ses propres
+-- commentaires (comme les pronostics) ; un admin peut aussi les nettoyer.
+create policy "match_comments_select_all" on match_comments for select using (true);
+create policy "match_comments_insert_own" on match_comments for insert with check (auth.uid() = manager_id);
+create policy "match_comments_delete_own_or_admin" on match_comments for delete using (
+  auth.uid() = manager_id or exists (select 1 from managers where id = auth.uid() and role = 'admin')
+);
+
 -- ============================================================
 -- Droits Postgres de base — SÉPARÉS des règles RLS ci-dessus. RLS filtre
 -- QUELLES lignes sont visibles/modifiables, mais le rôle doit d'abord avoir
@@ -207,6 +226,9 @@ grant insert, update, delete on public.presence_periods to authenticated;
 
 grant select on public.club_events to anon, authenticated;
 grant insert, update, delete on public.club_events to authenticated;
+
+grant select on public.match_comments to anon, authenticated;
+grant insert, delete on public.match_comments to authenticated;
 
 -- ============================================================
 -- Roster de base des 31 joueurs (identique à data/players.js, tous les
