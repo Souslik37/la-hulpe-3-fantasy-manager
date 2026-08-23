@@ -16,8 +16,9 @@
     return state.players.find((p) => p.id === playerId) || null;
   }
 
+  /** Toujours trié par ordre alphabétique — pratique partout où il faut retrouver un joueur dans une liste (pronostics, roster...). */
   function listPlayers() {
-    return window.LH3.services.stateService.getState().players;
+    return window.LH3.services.stateService.getState().players.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr'));
   }
 
   function computeOverall(attributes) {

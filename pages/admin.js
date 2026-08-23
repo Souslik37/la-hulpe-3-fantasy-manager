@@ -650,8 +650,6 @@
     function rerenderRoster() {
       list.innerHTML = '';
       window.LH3.services.playerService.listPlayers()
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name))
         .forEach((p) => list.appendChild(buildPlayerRow(p, rerenderRoster)));
     }
     rerenderRoster();
