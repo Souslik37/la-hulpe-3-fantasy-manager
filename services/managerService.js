@@ -10,21 +10,90 @@
   window.LH3.services = window.LH3.services || {};
 
   /**
+   * Tirage aléatoire pondéré du XV de départ : un joueur jamais/peu
+   * titularisé par les managers existants a beaucoup plus de chances d'être
+   * tiré qu'un joueur déjà choisi par tout le monde — pondération au carré
+   * pour que l'effet soit marqué (quasi garanti pour un joueur à 0-1
+   * sélection tant qu'ils ne sont pas plus nombreux que de places), sans
+   * empêcher un joueur populaire d'être tiré aussi (reste "aléatoire").
+   */
+  function weightedRandomStarters(playerIds, startedCounts, startersCount) {
+    const pool = playerIds.slice();
+    const picked = [];
+    for (let i = 0; i < startersCount && pool.length; i++) {
+      const weights = pool.map((id) => 1 / Math.pow(1 + (startedCounts[id] || 0), 2));
+      const total = weights.reduce((a, b) => a + b, 0);
+      let r = Math.random() * total;
+      let idx = weights.length - 1;
+      for (let j = 0; j < weights.length; j++) {
+        r -= weights[j];
+        if (r <= 0) { idx = j; break; }
+      }
+      picked.push(pool[idx]);
+      pool.splice(idx, 1);
+    }
+    return picked;
+  }
+
+  /**
    * `playerIds` doit refléter le roster RÉEL au moment de l'inscription (pas
    * le fichier statique data/players.js, qui peut être en retard sur des
    * ajouts/suppressions faits directement dans Supabase) — voir
    * authService.signUp, qui va chercher la liste à jour avant d'appeler ceci.
+   *
+   * `startedCounts` optionnel = { playerId: nombre de managers qui le
+   * titularisent actuellement }. Fourni => XV aléatoire pondéré (voir
+   * weightedRandomStarters). Absent => ancien comportement (les N premiers
+   * dans l'ordre du roster), gardé en repli si jamais l'appelant ne peut
+   * pas calculer les compteurs (ex: erreur réseau à l'inscription).
    */
-  function defaultSquad(playerIds) {
+  function defaultSquad(playerIds, startedCounts) {
     const ids = playerIds || window.LH3.data.PLAYERS.map((p) => p.id);
     const startersCount = window.LH3.data.CONFIG.squad.startersCount;
+    const starters = startedCounts
+      ? weightedRandomStarters(ids, startedCounts, startersCount)
+      : ids.slice(0, startersCount);
+    const starterSet = new Set(starters);
     return {
-      starters: ids.slice(0, startersCount),
-      bench: ids.slice(startersCount),
+      starters,
+      bench: ids.filter((id) => !starterSet.has(id)),
       captainId: null,
       buteurId: null,
       lanceurId: null,
     };
+  }
+
+  /** Compte, pour chaque joueur, combien de managers le titularisent actuellement. */
+  function computeStartedCounts(managers) {
+    const counts = {};
+    managers.forEach((m) => {
+      (m.squad && m.squad.starters || []).forEach((id) => { counts[id] = (counts[id] || 0) + 1; });
+    });
+    return counts;
+  }
+
+  /**
+   * Admin uniquement (RLS managers_admin_write) : retire une compo figée
+   * (par défaut ou pas) et la retire au sort, pondéré comme à l'inscription.
+   * Ne touche qu'à starters/bench — coach, attributs, PE, rôles (capitaine
+   * etc.) restent inchangés.
+   */
+  async function rerollStarters(manager) {
+    const state = window.LH3.services.stateService.getState();
+    const allManagers = Object.values(state.managers);
+    const startedCounts = computeStartedCounts(allManagers.filter((m) => m.id !== manager.id));
+    const allIds = state.players.map((p) => p.id);
+    const startersCount = window.LH3.data.CONFIG.squad.startersCount;
+
+    const starters = weightedRandomStarters(allIds, startedCounts, startersCount);
+    const starterSet = new Set(starters);
+    manager.squad.starters = starters;
+    manager.squad.bench = allIds.filter((id) => !starterSet.has(id));
+
+    const ok = await window.LH3.services.storageService.saveManager(manager);
+    if (!ok) return { ok: false, reason: 'Écriture impossible — vérifie ta connexion et réessaie.' };
+    window.LH3.services.stateService.notify();
+    return { ok: true };
   }
 
   // Capitaine / Buteur / Lanceur : trois rôles honorifiques indépendants,
@@ -262,6 +331,7 @@
 
   window.LH3.services.managerService = {
     getManager, getActiveManager, listManagers, removeManager, displayName,
+    computeStartedCounts, rerollStarters,
     updateCoach, randomCoach, defaultSquad, emptyCoach, searchAccents,
     randomJob, randomAccent, randomStory, randomQuote, randomManagementStyle,
     rolesFor, toggleRole,

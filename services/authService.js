@@ -94,13 +94,22 @@
       const { data: playerRows, error: playersError } = await getClient().from('players').select('id');
       const playerIds = playersError || !playerRows ? undefined : playerRows.map((p) => p.id);
 
+      // XV de départ aléatoire pondéré vers les joueurs peu/jamais
+      // titularisés ailleurs (voir managerService.defaultSquad) — si cet
+      // appel échoue pour une raison quelconque, on retombe sur l'ancien
+      // comportement déterministe plutôt que de bloquer l'inscription.
+      const { data: managerRows } = await getClient().from('managers').select('squad');
+      const startedCounts = managerRows
+        ? window.LH3.services.managerService.computeStartedCounts(managerRows.map((r) => ({ squad: r.squad })))
+        : undefined;
+
       const { error: insertError } = await getClient().from('managers').insert({
         id: userId,
         name,
         role: 'player',
         coach: coach || window.LH3.services.managerService.emptyCoach(),
         player_boosts: {},
-        squad: window.LH3.services.managerService.defaultSquad(playerIds),
+        squad: window.LH3.services.managerService.defaultSquad(playerIds, startedCounts),
         pe: 0,
         history: [],
       });

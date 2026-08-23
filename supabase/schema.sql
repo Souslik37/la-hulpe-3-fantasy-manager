@@ -150,6 +150,14 @@ alter table match_comments enable row level security;
 create policy "managers_select_all" on managers for select using (true);
 create policy "managers_insert_own" on managers for insert with check (auth.uid() = id);
 create policy "managers_update_own" on managers for update using (auth.uid() = id);
+-- Sans ça, l'admin ne peut écrire QUE sa propre ligne : toute distribution
+-- de PE à quelqu'un d'autre (notation de pronostics, bonus d'assiduité,
+-- événements du club) échoue silencieusement pour tout le monde sauf
+-- l'admin lui-même (0 ligne affectée par RLS, pas une erreur SQL — donc
+-- rien ne le signale côté appli, voir storageService.saveManagerProgress).
+create policy "managers_admin_write" on managers for update using (
+  exists (select 1 from managers where id = auth.uid() and role = 'admin')
+);
 create policy "managers_admin_delete" on managers for delete using (
   exists (select 1 from managers where id = auth.uid() and role = 'admin')
 );
