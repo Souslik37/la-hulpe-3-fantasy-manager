@@ -712,29 +712,34 @@
     });
   }
 
-  function confirmRerollStarters(manager, rerenderManagers) {
+  /** Affiche la compo actuelle (XV + banc, lecture seule) et propose un tirage aléatoire pondéré depuis la même modal. */
+  function openManagerCompoModal(manager) {
+    const body = el('div', {});
+    function refresh() {
+      body.innerHTML = '';
+      body.appendChild(el('div', { className: 'section-title' }, ['🏟️ XV de départ']));
+      body.appendChild(window.LH3.components.squadPitch.renderPitch(manager, { readOnly: true }));
+      body.appendChild(el('div', { className: 'section-title' }, ['🪑 Banc']));
+      body.appendChild(window.LH3.components.squadPitch.renderBench(manager, { readOnly: true }));
+    }
+    refresh();
+
     window.LH3.components.modal.open({
-      title: 'Tirer un nouveau XV pour ' + manager.name + ' ?',
-      body: el('div', {}, [
-        el('p', { className: 'small' }, ['Retire au sort ses 15 titulaires, en favorisant fortement les joueurs peu ou jamais titularisés ailleurs — le reste (coach, attributs, PE, capitaine...) ne change pas.']),
-      ]),
+      title: 'Composition de ' + manager.name,
+      body,
       actions: [
-        { label: 'Annuler', className: 'btn-ghost' },
+        { label: 'Fermer', className: 'btn-ghost' },
         {
-          label: 'Tirer un nouveau XV',
+          label: '🎲 Tirer une nouvelle compo',
           className: 'btn-primary',
           closeOnClick: false,
           onClick: async (btn) => {
             if (btn) { btn.disabled = true; btn.textContent = 'Tirage...'; }
             const res = await window.LH3.services.managerService.rerollStarters(manager);
-            if (!res.ok) {
-              window.LH3.components.toast.show(res.reason, 'error');
-              if (btn) { btn.disabled = false; btn.textContent = 'Tirer un nouveau XV'; }
-              return;
-            }
-            window.LH3.components.toast.show('Nouveau XV tiré pour ' + manager.name + ' ✅', 'success');
-            window.LH3.components.modal.close();
-            rerenderManagers();
+            if (btn) { btn.disabled = false; btn.textContent = '🎲 Tirer une nouvelle compo'; }
+            if (!res.ok) { window.LH3.components.toast.show(res.reason, 'error'); return; }
+            refresh();
+            window.LH3.components.toast.show('Nouveau XV tiré ✅ (favorise les joueurs peu titularisés)', 'success');
           },
         },
       ],
@@ -746,7 +751,7 @@
       el('div', { className: 'boost-label' }, [manager.name + (manager.coach && manager.coach.name ? ' (Coach ' + manager.coach.name + ')' : '')]),
       el('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } }, [
         el('span', { className: 'muted small' }, [(manager.pe || 0) + ' PE']),
-        el('button', { className: 'btn btn-sm btn-ghost', title: 'Retirer au sort son XV, favorise les joueurs peu titularisés', onClick: () => confirmRerollStarters(manager, rerenderManagers) }, ['🎲 Compo']),
+        el('button', { className: 'btn btn-sm btn-ghost', title: 'Voir sa composition et éventuellement en tirer une nouvelle', onClick: () => openManagerCompoModal(manager) }, ['Compo']),
         el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemoveManager(manager, rerenderManagers) }, ['Supprimer']),
       ]),
     ]);
