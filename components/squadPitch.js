@@ -12,6 +12,17 @@
 
   const { el } = window.LH3.utils.dom;
 
+  /** Détail complet d'un joueur (rareté, overall, les 10 attributs) — même carte que "Tous les joueurs"/"Attributs". */
+  function openPlayerDetail(card) {
+    const wrap = el('div', { style: { display: 'flex', justifyContent: 'center' } });
+    wrap.innerHTML = window.LH3.components.playerCard.render(card, { attrCount: 10 });
+    window.LH3.components.modal.open({
+      title: card.name,
+      body: wrap,
+      actions: [{ label: 'Fermer', className: 'btn-primary' }],
+    });
+  }
+
   /**
    * opts:
    *  - readOnly (bool, défaut false)
@@ -44,6 +55,14 @@
 
     if (roles.length) {
       badge.appendChild(el('span', { className: 'mini-captain' }, [roles.join('·')]));
+    }
+
+    if (card) {
+      badge.appendChild(el('span', {
+        className: 'pitch-slot-overall rarity-' + card.rarity,
+        title: 'Voir le détail de ' + card.name,
+        onClick: (e) => { e.stopPropagation(); openPlayerDetail(card); },
+      }, [String(card.overall)]));
     }
 
     return slot;
