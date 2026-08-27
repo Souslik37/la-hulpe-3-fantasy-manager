@@ -19,11 +19,11 @@
     return el('span', { className: 'rank-badge ' + cls }, [String(i + 1)]);
   }
 
-  /** Nom du coach en avant (le vrai nom de connexion en petit dessous, s'il diffère). */
+  /** Nom du coach en avant (le vrai nom de connexion en petit dessous, s'il diffère) — cliquable, ouvre sa fiche équipe (même modale que Communauté). */
   function managerCell(manager) {
     const dn = window.LH3.services.managerService.displayName(manager);
-    return el('td', {}, [
-      el('div', { style: { fontWeight: '700' } }, [dn]),
+    return el('td', { style: { cursor: 'pointer' }, onClick: () => window.LH3.pages.community.openManagerModal(manager) }, [
+      el('div', { style: { fontWeight: '700', color: 'var(--green-text)' } }, [dn]),
       dn !== manager.name ? el('div', { className: 'muted', style: { fontSize: '11px' } }, [manager.name]) : null,
     ]);
   }

@@ -99,6 +99,14 @@
     const playerService = window.LH3.services.playerService;
     const CONFIG = window.LH3.data.CONFIG;
 
+    // Instantané au moment d'ouvrir : si la modale se ferme sans passer par
+    // "Sauvegarder définitivement" (Fermer, ✕, ou clic hors modale), tout ce
+    // qui a été monté/descendu pendant cette session d'édition est annulé —
+    // ça évite de pouvoir contourner le plancher sauvegardé en montant
+    // temporairement un joueur puis en fermant sans valider.
+    const openingSnapshot = JSON.parse(JSON.stringify((manager.playerBoosts && manager.playerBoosts[playerId]) || {}));
+    let committed = false;
+
     let modalHandle = null;
     function buildBody() {
       const card = playerService.getCard(manager, playerId);
@@ -155,16 +163,27 @@
     modalHandle = window.LH3.components.modal.open({
       title: 'Répartir les points',
       body: buildBody(),
+      onClose: () => {
+        if (committed) return;
+        const current = (manager.playerBoosts && manager.playerBoosts[playerId]) || {};
+        if (JSON.stringify(current) === JSON.stringify(openingSnapshot)) return;
+        manager.playerBoosts = manager.playerBoosts || {};
+        manager.playerBoosts[playerId] = openingSnapshot;
+        window.LH3.services.stateService.persist();
+        window.LH3.components.toast.show('Fermé sans sauvegarder — les changements sur ce joueur sont annulés.');
+        rerenderParent();
+      },
       actions: [
         { label: 'Fermer', className: 'btn-ghost' },
         {
-          label: '✅ Sauvegarder cette répartition',
+          label: '🔒 Sauvegarder définitivement',
           className: 'btn-primary',
           closeOnClick: false,
           onClick: () => {
             playerService.saveBoosts(manager, playerId);
+            committed = true;
             window.LH3.services.stateService.persist();
-            window.LH3.components.toast.show('Répartition sauvegardée — plus moyen de redescendre en dessous (sauf réinitialiser toute l\'équipe) ✅', 'success');
+            window.LH3.components.toast.show('Répartition sauvegardée définitivement — plus moyen de redescendre en dessous, sauf réinitialiser toute l\'équipe (1x/saison) ✅', 'success');
           },
         },
       ],

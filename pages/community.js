@@ -267,5 +267,7 @@
     else root.appendChild(buildArchivesTab(root));
   }
 
-  window.LH3.pages.community = { render };
+  // openManagerModal exporté pour être réutilisé ailleurs (ex: Classements)
+  // partout où cliquer un manager doit ouvrir la même fiche équipe.
+  window.LH3.pages.community = { render, openManagerModal };
 })();
