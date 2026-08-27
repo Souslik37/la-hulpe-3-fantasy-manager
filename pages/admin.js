@@ -679,6 +679,67 @@
     buildPresenceSection(root);
     buildRosterSection(root);
     buildManagersSection(root);
+    buildSeasonResetSection(root);
+  }
+
+  // ── Reset de saison (archive le classement, remet tout à zéro) ─────────
+  function confirmSeasonReset(label, rerender) {
+    window.LH3.components.modal.open({
+      title: 'Confirmer le reset de "' + label + '" ?',
+      body: el('div', {}, [
+        el('p', { className: 'small', style: { fontWeight: '700' } }, ['Dernière étape avant de tout remettre à zéro — impossible à annuler.']),
+        el('p', { className: 'small' }, ['Le classement final, les équipes, les pronostics et l\'assiduité de chaque manager sont d\'abord archivés sous ce nom. Ensuite : PE, attributs et compo repartent de zéro pour tout le monde (nouveau tirage aléatoire favorisant les moins titularisés), et le calendrier, le Journal du Club, les périodes d\'assiduité et les événements de club sont vidés.']),
+      ]),
+      actions: [
+        { label: 'Annuler', className: 'btn-ghost' },
+        {
+          label: 'Confirmer le reset',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: async (btn) => {
+            if (btn) { btn.disabled = true; btn.textContent = 'Archivage et reset en cours...'; }
+            const res = await window.LH3.services.seasonArchiveService.archiveAndResetSeason(label);
+            if (!res.ok) {
+              window.LH3.components.toast.show(res.reason, 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Confirmer le reset'; }
+              return;
+            }
+            window.LH3.components.toast.show(
+              (res.reason ? res.reason : (res.managersArchived + ' managers archivés, saison remise à zéro ✅')),
+              res.reason ? 'error' : 'success'
+            );
+            window.LH3.components.modal.close();
+            rerender();
+          },
+        },
+      ],
+    });
+  }
+
+  function buildSeasonResetSection(root) {
+    root.appendChild(el('div', { className: 'section-title' }, ['⚠️ Reset de saison']));
+
+    const labelInput = el('input', { type: 'text', placeholder: 'Ex : Saison 1 — 2025/26' });
+    const checkbox = el('input', { type: 'checkbox' });
+    const goBtn = el('button', { className: 'btn btn-danger', disabled: true }, ['Archiver et réinitialiser la saison']);
+
+    function refreshGoBtn() {
+      goBtn.disabled = !checkbox.checked || !labelInput.value.trim();
+    }
+    checkbox.addEventListener('change', refreshGoBtn);
+    labelInput.addEventListener('input', refreshGoBtn);
+    goBtn.addEventListener('click', () => confirmSeasonReset(labelInput.value.trim(), () => render(root)));
+
+    root.appendChild(el('div', { className: 'card' }, [
+      el('p', { className: 'small', style: { marginBottom: '14px' } }, [
+        'Fige le classement final (+ équipes, pronostics, assiduité de chacun) dans un historique consultable depuis Communauté, puis remet PE/attributs/compo à zéro pour tout le monde et vide calendrier/journal/assiduité/événements. À faire une fois, en fin de saison — irréversible.',
+      ]),
+      el('div', { className: 'field' }, [el('label', {}, ['Nom de cette saison (pour l\'archive)']), labelInput]),
+      el('label', { style: { display: 'flex', alignItems: 'center', gap: '8px', margin: '12px 0', cursor: 'pointer', fontSize: '13px' } }, [
+        checkbox, 'Je comprends que cette action est irréversible et remet tout à zéro pour TOUS les managers.',
+      ]),
+      goBtn,
+    ]));
   }
 
   function confirmRemoveManager(manager, rerenderManagers) {

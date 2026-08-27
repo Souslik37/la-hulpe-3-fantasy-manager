@@ -108,6 +108,30 @@ create table journal (
   created_at timestamptz not null default now()
 );
 
+-- ── Archives de saison (figées au moment d'un reset, voir Administration) ──
+-- Une ligne par manager par saison archivée. `manager_id` n'est PAS une
+-- clé étrangère vers managers(id) : l'archive doit rester lisible même si
+-- le manager est supprimé/renommé plus tard — c'est un instantané
+-- autonome, pas une vue live. `squad`/`player_cards`/`predictions`/
+-- `presence` sont eux-mêmes des instantanés complets (pas de dépendance
+-- aux tables matches/players/predictions qui seront vidées/remplacées par
+-- le reset qui suit immédiatement l'archivage).
+create table season_archives (
+  id uuid primary key default gen_random_uuid(),
+  season_label text not null,
+  manager_id uuid not null,
+  manager_name text not null,
+  coach_name text,
+  final_pe integer not null default 0,
+  final_prestige text,
+  final_team_overall integer,
+  squad jsonb not null default '{}'::jsonb,
+  player_cards jsonb not null default '[]'::jsonb,
+  predictions jsonb not null default '[]'::jsonb,
+  presence jsonb not null default '[]'::jsonb,
+  archived_at timestamptz not null default now()
+);
+
 -- ── Périodes d'assiduité (bonus de présence, ~tous les 2 mois) ──────────────
 -- `ratings` est un objet { managerId: { tier, pe } } — un seul manager par
 -- clé, pas besoin d'une table séparée pour si peu de lignes par saison.
@@ -151,6 +175,7 @@ alter table journal enable row level security;
 alter table presence_periods enable row level security;
 alter table club_events enable row level security;
 alter table match_comments enable row level security;
+alter table season_archives enable row level security;
 
 -- Managers : tout le monde peut lire tout le monde (classement, capitaine
 -- fétiche...), mais chacun ne modifie que sa propre ligne.
@@ -218,6 +243,13 @@ create policy "match_comments_delete_own_or_admin" on match_comments for delete 
   auth.uid() = manager_id or exists (select 1 from managers where id = auth.uid() and role = 'admin')
 );
 
+-- Archives de saison : lecture publique (historique consultable par tous),
+-- écriture réservée à un admin (créées uniquement au moment d'un reset).
+create policy "season_archives_select_all" on season_archives for select using (true);
+create policy "season_archives_admin_write" on season_archives for all using (
+  exists (select 1 from managers where id = auth.uid() and role = 'admin')
+);
+
 -- ============================================================
 -- Droits Postgres de base — SÉPARÉS des règles RLS ci-dessus. RLS filtre
 -- QUELLES lignes sont visibles/modifiables, mais le rôle doit d'abord avoir
@@ -249,6 +281,9 @@ grant insert, update, delete on public.club_events to authenticated;
 
 grant select on public.match_comments to anon, authenticated;
 grant insert, delete on public.match_comments to authenticated;
+
+grant select on public.season_archives to anon, authenticated;
+grant insert, update, delete on public.season_archives to authenticated;
 
 -- ============================================================
 -- Roster de base des 31 joueurs (identique à data/players.js, tous les

@@ -336,6 +336,72 @@
     return !error;
   }
 
+  // ── Archivage + reset de saison (Administration) ──────────────────────
+
+  /** Admin uniquement : charge TOUS les pronostics de TOUS les managers (pour archiver avant un reset). */
+  async function loadAllPredictions() {
+    const { data, error } = await client().from('predictions').select('*');
+    if (error) throw error;
+    return data;
+  }
+
+  /** Admin uniquement : enregistre une ligne d'archive par manager pour la saison qui se termine. */
+  async function insertSeasonArchives(rows) {
+    if (!rows.length) return true;
+    const { error } = await client().from('season_archives').insert(rows.map((r) => ({
+      id: r.id, season_label: r.seasonLabel, manager_id: r.managerId, manager_name: r.managerName,
+      coach_name: r.coachName || null, final_pe: r.finalPe, final_prestige: r.finalPrestige,
+      final_team_overall: r.finalTeamOverall, squad: r.squad, player_cards: r.playerCards,
+      predictions: r.predictions, presence: r.presence,
+    })));
+    if (error) console.error('[storageService] échec archivage saison', error);
+    return !error;
+  }
+
+  function seasonArchiveRowToApp(row) {
+    return {
+      id: row.id, seasonLabel: row.season_label, managerId: row.manager_id, managerName: row.manager_name,
+      coachName: row.coach_name, finalPe: row.final_pe, finalPrestige: row.final_prestige,
+      finalTeamOverall: row.final_team_overall, squad: row.squad || {}, playerCards: row.player_cards || [],
+      predictions: row.predictions || [], presence: row.presence || [], archivedAt: row.archived_at,
+    };
+  }
+
+  /** Lecture publique : toutes les archives de saisons passées, tous managers confondus. */
+  async function loadSeasonArchives() {
+    const { data, error } = await client().from('season_archives').select('*').order('archived_at', { ascending: false });
+    if (error) throw error;
+    return data.map(seasonArchiveRowToApp);
+  }
+
+  /** Admin uniquement : vide entièrement le calendrier — les pronostics et commentaires liés partent en cascade (voir schema.sql). */
+  async function clearAllMatches() {
+    const { error } = await client().from('matches').delete().not('id', 'is', null);
+    if (error) console.error('[storageService] échec vidage calendrier', error);
+    return !error;
+  }
+
+  /** Admin uniquement : vide tout le Journal du Club. */
+  async function clearAllJournal() {
+    const { error } = await client().from('journal').delete().not('id', 'is', null);
+    if (error) console.error('[storageService] échec vidage journal', error);
+    return !error;
+  }
+
+  /** Admin uniquement : vide toutes les périodes d'assiduité. */
+  async function clearAllPresencePeriods() {
+    const { error } = await client().from('presence_periods').delete().not('id', 'is', null);
+    if (error) console.error('[storageService] échec vidage assiduité', error);
+    return !error;
+  }
+
+  /** Admin uniquement : vide tous les événements du club. */
+  async function clearAllClubEvents() {
+    const { error } = await client().from('club_events').delete().not('id', 'is', null);
+    if (error) console.error('[storageService] échec vidage événements', error);
+    return !error;
+  }
+
   window.LH3.services.storageService = {
     loadInitialState, saveManager, saveManagerProgress, savePredictionRow, saveMatch,
     loadPredictionsForMatch, savePredictionGrading, saveJournalEntries, deleteJournalForMatch,
@@ -347,5 +413,7 @@
     insertPresencePeriod, deletePresencePeriod,
     insertClubEvent, deleteClubEvent,
     insertMatchComment, deleteMatchComment,
+    loadAllPredictions, insertSeasonArchives, loadSeasonArchives,
+    clearAllMatches, clearAllJournal, clearAllPresencePeriods, clearAllClubEvents,
   };
 })();

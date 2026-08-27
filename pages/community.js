@@ -129,6 +129,125 @@
     ]);
   }
 
+  // ── Onglet Saisons passées ───────────────────────────────────────────────
+  let seasonArchives = null; // null = pas encore chargé, [] = chargé mais vide
+  let archivesLoading = false;
+  let selectedSeason = null;
+
+  function openArchivedManagerModal(archive) {
+    const cardById = {};
+    archive.playerCards.forEach((c) => { cardById[c.id] = c; });
+    let subTab = 'squad';
+    const body = el('div', {});
+
+    function refresh() {
+      body.innerHTML = '';
+      body.appendChild(el('div', { className: 'tabs' }, [
+        el('div', { className: 'tab-btn' + (subTab === 'squad' ? ' active' : ''), onClick: () => { subTab = 'squad'; refresh(); } }, ['Équipe']),
+        el('div', { className: 'tab-btn' + (subTab === 'predictions' ? ' active' : ''), onClick: () => { subTab = 'predictions'; refresh(); } }, ['Pronostics']),
+        el('div', { className: 'tab-btn' + (subTab === 'presence' ? ' active' : ''), onClick: () => { subTab = 'presence'; refresh(); } }, ['Présence']),
+      ]));
+
+      if (subTab === 'squad') {
+        const grid = el('div', { className: 'players-grid' });
+        (archive.squad.starters || []).forEach((id) => {
+          const card = cardById[id];
+          if (!card) return;
+          const w = el('div'); w.innerHTML = window.LH3.components.playerCard.render(card, {});
+          grid.appendChild(w.firstElementChild);
+        });
+        body.appendChild(el('div', { className: 'section-title' }, ['🏟️ Titulaires']));
+        body.appendChild(grid);
+        if ((archive.squad.bench || []).length) {
+          const benchGrid = el('div', { className: 'players-grid' });
+          archive.squad.bench.forEach((id) => {
+            const card = cardById[id];
+            if (!card) return;
+            const w = el('div'); w.innerHTML = window.LH3.components.playerCard.render(card, { compact: true });
+            benchGrid.appendChild(w.firstElementChild);
+          });
+          body.appendChild(el('div', { className: 'section-title' }, ['🪑 Banc']));
+          body.appendChild(benchGrid);
+        }
+      } else if (subTab === 'predictions') {
+        if (!archive.predictions.length) {
+          body.appendChild(el('div', { className: 'muted small' }, ['Aucun pronostic soumis cette saison-là.']));
+        } else {
+          archive.predictions.forEach((p) => {
+            const row = el('div', { className: 'boost-row' }, [
+              el('div', { className: 'boost-label' }, ['J' + p.matchday + ' vs ' + p.opponent]),
+              el('div', { className: 'muted small' }, [
+                'Pronostic : ' + p.scoreFor + '–' + p.scoreAgainst
+                + (p.result ? ' · Réel : ' + p.result.scoreFor + '–' + p.result.scoreAgainst : ''),
+              ]),
+              el('div', { className: 'badge ' + window.LH3.utils.format.peBadgeClass(p.peEarned) }, [window.LH3.utils.format.formatSigned(p.peEarned) + ' PE']),
+            ]);
+            body.appendChild(row);
+          });
+        }
+      } else {
+        if (!archive.presence.length) {
+          body.appendChild(el('div', { className: 'muted small' }, ['Aucune évaluation d\'assiduité cette saison-là.']));
+        } else {
+          archive.presence.forEach((p) => {
+            body.appendChild(el('div', { className: 'boost-row' }, [
+              el('div', { className: 'boost-label' }, [p.label]),
+              el('div', {}, [p.tierLabel]),
+              el('div', { className: 'badge ' + window.LH3.utils.format.peBadgeClass(p.pe) }, [window.LH3.utils.format.formatSigned(p.pe) + ' PE']),
+            ]));
+          });
+        }
+      }
+    }
+    refresh();
+
+    window.LH3.components.modal.open({ title: archive.managerName, body, actions: [{ label: 'Fermer', className: 'btn-primary' }] });
+  }
+
+  function buildArchivesTab(root) {
+    if (seasonArchives === null) {
+      if (!archivesLoading) {
+        archivesLoading = true;
+        window.LH3.services.storageService.loadSeasonArchives()
+          .then((archives) => { seasonArchives = archives; archivesLoading = false; render(root); })
+          .catch((e) => { console.error('[community] échec chargement archives', e); seasonArchives = []; archivesLoading = false; render(root); });
+      }
+      return el('div', { className: 'card empty-state' }, [el('div', { className: 'ic' }, ['⏳']), el('div', {}, ['Chargement des archives...'])]);
+    }
+
+    if (!seasonArchives.length) {
+      return el('div', { className: 'card empty-state' }, [
+        el('div', { className: 'ic' }, ['📚']),
+        el('div', {}, ['Aucune saison archivée pour l\'instant — ça viendra au premier reset de saison (Administration).']),
+      ]);
+    }
+
+    const labels = [];
+    seasonArchives.forEach((a) => { if (!labels.includes(a.seasonLabel)) labels.push(a.seasonLabel); });
+    if (!selectedSeason || !labels.includes(selectedSeason)) selectedSeason = labels[0];
+
+    const rows = seasonArchives.filter((a) => a.seasonLabel === selectedSeason).sort((a, b) => b.finalPe - a.finalPe);
+
+    return el('div', {}, [
+      el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' } },
+        labels.map((label) => el('button', {
+          className: 'btn btn-sm' + (label === selectedSeason ? ' btn-primary' : ' btn-ghost'),
+          onClick: () => { selectedSeason = label; render(root); },
+        }, [label]))),
+      el('div', { className: 'card' }, rows.map((r, i) => el('div', {
+        className: 'boost-row', style: { cursor: 'pointer' },
+        onClick: () => openArchivedManagerModal(r),
+      }, [
+        el('div', { className: 'boost-label' }, [(i + 1) + '. ' + r.managerName]),
+        el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } }, [
+          el('span', { className: 'badge badge-green' }, [String(r.finalPe) + ' PE']),
+          el('span', { className: 'badge' }, ['🎖️ ' + r.finalPrestige]),
+          el('span', { className: 'badge' }, [String(r.finalTeamOverall) + ' overall']),
+        ]),
+      ]))),
+    ]);
+  }
+
   function render(root) {
     root.innerHTML = '';
     root.appendChild(el('div', { className: 'page-header' }, [
@@ -139,10 +258,13 @@
     const tabs = el('div', { className: 'tabs' }, [
       el('div', { className: 'tab-btn' + (activeTab === 'managers' ? ' active' : ''), onClick: () => { activeTab = 'managers'; render(root); } }, ['Managers']),
       el('div', { className: 'tab-btn' + (activeTab === 'stats' ? ' active' : ''), onClick: () => { activeTab = 'stats'; render(root); } }, ['Stats par poste']),
+      el('div', { className: 'tab-btn' + (activeTab === 'archives' ? ' active' : ''), onClick: () => { activeTab = 'archives'; render(root); } }, ['📚 Saisons passées']),
     ]);
     root.appendChild(tabs);
 
-    root.appendChild(activeTab === 'managers' ? buildManagersTab() : buildStatsTab());
+    if (activeTab === 'managers') root.appendChild(buildManagersTab());
+    else if (activeTab === 'stats') root.appendChild(buildStatsTab());
+    else root.appendChild(buildArchivesTab(root));
   }
 
   window.LH3.pages.community = { render };
