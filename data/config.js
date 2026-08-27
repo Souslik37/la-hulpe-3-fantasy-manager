@@ -42,6 +42,13 @@
         diamant: { label: 'Diamant', min: 80, max: 89 },
         legende: { label: 'Légende', min: 90, max: 100 },
       },
+      // Un joueur ne peut monter d'un palier que si le manager a déjà au
+      // moins ce nombre de joueurs (lui excepté) au palier qu'il quitte ou
+      // au-dessus — empêche de foncer directement sur un seul héros sans
+      // construire une base. Ne s'applique qu'aux NOUVELLES montées de
+      // palier ; les compositions déjà existantes ne sont jamais retouchées
+      // rétroactivement (voir playerService.adjustAttribute).
+      minPeersForNextTier: 3,
     },
 
     // Récompenses en PE par élément de pronostic juste. "Bonus" car ils

@@ -78,9 +78,32 @@
     return total;
   }
 
-  /** Remet tous les attributs d'un manager à leur base (50 partout) — les points dépensés redeviennent disponibles. */
+  /**
+   * Remet tous les attributs d'un manager à leur base (50 partout) — les
+   * points dépensés redeviennent disponibles. Limité à 1 fois par saison
+   * (remis à disposition par un futur reset de saison, voir Administration) :
+   * une fois utilisé, `manager.resetBoostsUsed` reste vrai et le bouton
+   * correspondant se grise côté UI (voir pages/myTeam.js).
+   */
   function resetBoosts(manager) {
+    if (manager.resetBoostsUsed) return { ok: false, reason: 'Tu as déjà utilisé ta réinitialisation cette saison.' };
     manager.playerBoosts = {};
+    manager.resetBoostsUsed = true;
+    return { ok: true };
+  }
+
+  function tierIndexForOverall(overall) {
+    const order = CONFIG().rarity.order;
+    for (let i = order.length - 1; i >= 0; i--) {
+      if (overall >= CONFIG().rarity.tiers[order[i]].min) return i;
+    }
+    return 0;
+  }
+
+  /** Combien de joueurs (hors `excludePlayerId`) sont déjà au palier `tierIdx` ou au-dessus, pour ce manager. */
+  function countPeersAtTierOrAbove(manager, tierIdx, excludePlayerId) {
+    const minOverall = CONFIG().rarity.tiers[CONFIG().rarity.order[tierIdx]].min;
+    return listPlayers().filter((p) => p.id !== excludePlayerId && getCard(manager, p.id).overall >= minOverall).length;
   }
 
   /**
@@ -119,6 +142,24 @@
 
     if (delta > 0 && pointsRemaining(manager) < delta) {
       return { ok: false, reason: 'Plus assez de points disponibles.' };
+    }
+
+    if (delta > 0) {
+      const currentOverall = getCard(manager, playerId).overall;
+      const currentAttrs = getMergedAttributes(manager, playerId);
+      const projectedOverall = computeOverall(Object.assign({}, currentAttrs, {
+        [attrKey]: window.LH3.utils.format.clamp(newValue, 0, CONFIG().season.maxAttribute),
+      }));
+      const currentTier = tierIndexForOverall(currentOverall);
+      const projectedTier = tierIndexForOverall(projectedOverall);
+      if (projectedTier > currentTier) {
+        const required = CONFIG().rarity.minPeersForNextTier;
+        const peers = countPeersAtTierOrAbove(manager, currentTier, playerId);
+        if (peers < required) {
+          const tierLabel = window.LH3.utils.format.rarityLabel(CONFIG().rarity.order[currentTier]);
+          return { ok: false, reason: `Il faut d'abord au moins ${required} autres joueurs ${tierLabel} ou plus avant de faire monter celui-ci au palier suivant.` };
+        }
+      }
     }
 
     manager.playerBoosts[playerId][attrKey] = newDelta;

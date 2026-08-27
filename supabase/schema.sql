@@ -35,6 +35,9 @@ create table managers (
   -- mais peuvent être supprimés sans risque si besoin.
   fun_points integer not null default 0,
   attribute_reserved jsonb not null default '{}'::jsonb,
+  -- Limite le bouton "Tout réinitialiser mon équipe" (myTeam.js) à 1
+  -- utilisation par saison — remis à false par un futur reset de saison.
+  reset_boosts_used boolean not null default false,
   created_at timestamptz not null default now()
 );
 

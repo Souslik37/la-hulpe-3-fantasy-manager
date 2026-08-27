@@ -162,7 +162,7 @@
     window.LH3.components.modal.open({
       title: 'Réinitialiser ton équipe ?',
       body: el('div', {}, [
-        el('p', { className: 'small' }, ['Tous tes joueurs reviennent à 50 partout, et tu récupères tous les points dépensés pour les redistribuer autrement. Cette action ne se défait pas.']),
+        el('p', { className: 'small' }, ['Tous tes joueurs reviennent à 50 partout, et tu récupères tous les points dépensés pour les redistribuer autrement. Utilisable une seule fois par saison — cette action ne se défait pas.']),
       ]),
       actions: [
         { label: 'Annuler', className: 'btn-ghost' },
@@ -170,7 +170,8 @@
           label: 'Tout réinitialiser',
           className: 'btn-primary',
           onClick: () => {
-            window.LH3.services.playerService.resetBoosts(manager);
+            const res = window.LH3.services.playerService.resetBoosts(manager);
+            if (!res.ok) { window.LH3.components.toast.show(res.reason, 'error'); return; }
             window.LH3.services.stateService.persist();
             window.LH3.components.toast.show('Équipe réinitialisée — tous les joueurs sont revenus à 50 ✅', 'success');
             rerender();
@@ -243,10 +244,12 @@
           spent + ' points dépensés sur ' + available + ' disponibles (' + window.LH3.data.CONFIG.season.startingPoints + ' de départ + bonus PE).',
         ]),
       ]),
-      spent > 0 ? el('button', {
+      (spent > 0 || manager.resetBoostsUsed) ? el('button', {
         className: 'btn btn-ghost btn-sm',
+        disabled: !!manager.resetBoostsUsed,
+        title: manager.resetBoostsUsed ? 'Déjà utilisé cette saison' : '',
         onClick: () => confirmResetBoosts(manager, rerender),
-      }, ['🔄 Réinitialiser mon équipe']) : null,
+      }, [manager.resetBoostsUsed ? '🔄 Déjà réinitialisé cette saison' : '🔄 Réinitialiser mon équipe']) : null,
     ]);
 
     const grid = el('div', { className: 'players-grid' });

@@ -23,6 +23,7 @@
       squad: row.squad || {},
       pe: row.pe || 0,
       history: row.history || [],
+      resetBoostsUsed: row.reset_boosts_used || false,
       predictions: {}, // rempli séparément depuis la table predictions
       predictionResults: {}, // idem (breakdown/pe_earned)
       createdAt: row.created_at,
@@ -141,6 +142,7 @@
       squad: manager.squad,
       pe: manager.pe,
       history: manager.history,
+      reset_boosts_used: manager.resetBoostsUsed || false,
     }).eq('id', manager.id);
     if (error) console.error('[storageService] échec sauvegarde manager', error);
     return !error;
