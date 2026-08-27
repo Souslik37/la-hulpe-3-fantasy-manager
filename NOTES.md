@@ -118,12 +118,18 @@ sur les 15 titulaires, vérifiée contre `data/config.js` réel) :
   31. Accepté tel quel ("ça fait partie du jeu") plutôt que d'ajouter un
   garde-fou artificiel, puisque c'est structurellement inatteignable.
 
-Le bonus d'assiduité (`services/presenceService.js`, ~4 fois/saison, 5
-paliers de 0 à 600 PE) reste plus petit que les pronostics dans l'absolu,
-mais pèse maintenant davantage qu'au premier rééquilibrage — c'est un choix
-délibéré : contrairement aux pronostics, l'assiduité ne demande aucun
-talent particulier, donc c'est le canal qui garantit une vraie progression
-pour tout le monde, pas seulement les bons pronostiqueurs.
+Le bonus d'assiduité (`services/presenceService.js`, ~4 fois/saison) reste
+plus petit que les pronostics dans l'absolu — contrairement aux
+pronostics, l'assiduité ne demande aucun talent particulier, donc c'est le
+canal qui garantit une vraie progression pour tout le monde, pas seulement
+les bons pronostiqueurs.
+
+**⚠️ Chiffres historiques ci-dessus obsolètes sur ce point précis** : les
+paliers d'assiduité ont été rééquilibrés depuis (0/150/300/450/600 →
+0/50/100/150/250, voir `data/config.js`) — l'ancien barème pouvait à lui
+seul dépasser une saison entière de bons pronostics, ce qui contredisait
+le principe "canal secondaire" énoncé ci-dessus. Voir HANDOVER.md
+pour l'état réel actuel.
 
 ## Prestige
 
