@@ -88,7 +88,31 @@
   function resetBoosts(manager) {
     if (manager.resetBoostsUsed) return { ok: false, reason: 'Tu as déjà utilisé ta réinitialisation cette saison.' };
     manager.playerBoosts = {};
+    manager.savedBoosts = {};
     manager.resetBoostsUsed = true;
+    return { ok: true };
+  }
+
+  /** Plancher sauvegardé d'un attribut (0 si jamais sauvegardé pour ce joueur). */
+  function savedFloor(manager, playerId, attrKey) {
+    const saved = manager.savedBoosts && manager.savedBoosts[playerId];
+    return (saved && saved[attrKey]) || 0;
+  }
+
+  /**
+   * Fige la répartition ACTUELLE d'un joueur comme plancher : impossible de
+   * redescendre en dessous ensuite (voir adjustAttribute), sauf en
+   * réinitialisant toute l'équipe (resetBoosts, 1x/saison). On peut toujours
+   * remonter au-dessus, et re-sauvegarder plus tard pour relever le plancher.
+   */
+  function saveBoosts(manager, playerId) {
+    const current = (manager.playerBoosts && manager.playerBoosts[playerId]) || {};
+    manager.savedBoosts = manager.savedBoosts || {};
+    const floor = {};
+    CONFIG().attributes.forEach((a) => {
+      floor[a.key] = Math.max(current[a.key] || 0, savedFloor(manager, playerId, a.key));
+    });
+    manager.savedBoosts[playerId] = floor;
     return { ok: true };
   }
 
@@ -134,6 +158,9 @@
     const newDelta = current + delta;
 
     if (newDelta < 0) return { ok: false, reason: 'Ce boost est déjà à zéro.' };
+    if (delta < 0 && newDelta < savedFloor(manager, playerId, attrKey)) {
+      return { ok: false, reason: 'Cette répartition a été sauvegardée — impossible de redescendre en dessous (sauf réinitialiser toute l\'équipe).' };
+    }
 
     const newValue = base.baseAttributes[attrKey] + newDelta;
     if (newValue > CONFIG().season.maxAttribute) {
@@ -169,5 +196,6 @@
   window.LH3.services.playerService = {
     getPlayerBase, listPlayers, computeOverall, getMergedAttributes,
     getCard, getAllCards, teamOverall, pointsSpent, pointsAvailable, pointsRemaining, adjustAttribute, resetBoosts,
+    saveBoosts, savedFloor,
   };
 })();

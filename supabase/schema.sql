@@ -38,6 +38,10 @@ create table managers (
   -- Limite le bouton "Tout réinitialiser mon équipe" (myTeam.js) à 1
   -- utilisation par saison — remis à false par un futur reset de saison.
   reset_boosts_used boolean not null default false,
+  -- Plancher par joueur/attribut sauvegardé via le bouton "Sauvegarder" (voir
+  -- pages/myTeam.js) : impossible de redescendre en dessous ensuite, sauf en
+  -- passant par resetBoosts (qui vide aussi ce champ).
+  saved_boosts jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 

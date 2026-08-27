@@ -126,6 +126,7 @@
               onClick: () => {
                 const res = playerService.adjustAttribute(manager, playerId, attr.key, -1);
                 if (res.ok) { window.LH3.services.stateService.persist(); refresh(); rerenderParent(); }
+                else window.LH3.components.toast.show(res.reason, 'error');
               },
             }, ['–']),
             el('div', { className: 'boost-value' }, [String(value)]),
@@ -154,7 +155,19 @@
     modalHandle = window.LH3.components.modal.open({
       title: 'Répartir les points',
       body: buildBody(),
-      actions: [{ label: 'Fermer', className: 'btn-primary' }],
+      actions: [
+        { label: 'Fermer', className: 'btn-ghost' },
+        {
+          label: '✅ Sauvegarder cette répartition',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: () => {
+            playerService.saveBoosts(manager, playerId);
+            window.LH3.services.stateService.persist();
+            window.LH3.components.toast.show('Répartition sauvegardée — plus moyen de redescendre en dessous (sauf réinitialiser toute l\'équipe) ✅', 'success');
+          },
+        },
+      ],
     });
   }
 
@@ -244,12 +257,15 @@
           spent + ' points dépensés sur ' + available + ' disponibles (' + window.LH3.data.CONFIG.season.startingPoints + ' de départ + bonus PE).',
         ]),
       ]),
-      (spent > 0 || manager.resetBoostsUsed) ? el('button', {
-        className: 'btn btn-ghost btn-sm',
-        disabled: !!manager.resetBoostsUsed,
-        title: manager.resetBoostsUsed ? 'Déjà utilisé cette saison' : '',
-        onClick: () => confirmResetBoosts(manager, rerender),
-      }, [manager.resetBoostsUsed ? '🔄 Déjà réinitialisé cette saison' : '🔄 Réinitialiser mon équipe']) : null,
+      (spent > 0 || manager.resetBoostsUsed) ? el('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' } }, [
+        el('button', {
+          className: 'btn btn-ghost btn-sm',
+          disabled: !!manager.resetBoostsUsed,
+          title: manager.resetBoostsUsed ? 'Déjà utilisé cette saison' : '',
+          onClick: () => confirmResetBoosts(manager, rerender),
+        }, [manager.resetBoostsUsed ? '🔄 Déjà réinitialisé cette saison' : '🔄 Réinitialiser mon équipe']),
+        el('div', { className: 'muted', style: { fontSize: '11px', fontStyle: 'italic' } }, ['(max 1 fois par saison)']),
+      ]) : null,
     ]);
 
     const grid = el('div', { className: 'players-grid' });
