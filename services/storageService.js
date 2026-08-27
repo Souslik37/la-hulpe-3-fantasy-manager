@@ -266,6 +266,19 @@
     return data;
   }
 
+  /**
+   * Lecture publique (RLS predictions_select_locked_matches) : tous les
+   * pronostics d'UN manager, mais seulement ceux dont le match n'est plus
+   * "ouvert" — RLS filtre déjà les journées encore en cours, cette requête
+   * renvoie donc naturellement moins de lignes si on n'est pas soi-même le
+   * manager concerné (ou admin).
+   */
+  async function loadPredictionsForManager(managerId) {
+    const { data, error } = await client().from('predictions').select('*').eq('manager_id', managerId);
+    if (error) throw error;
+    return data;
+  }
+
   /** Admin uniquement : écrit le résultat de correction (breakdown + PE) d'un manager. */
   async function savePredictionGrading(managerId, matchId, breakdown) {
     const { error } = await client().from('predictions').update({
@@ -404,7 +417,7 @@
 
   window.LH3.services.storageService = {
     loadInitialState, saveManager, saveManagerProgress, savePredictionRow, saveMatch,
-    loadPredictionsForMatch, savePredictionGrading, saveJournalEntries, deleteJournalForMatch,
+    loadPredictionsForMatch, loadPredictionsForManager, savePredictionGrading, saveJournalEntries, deleteJournalForMatch,
     deleteJournalEntriesByIds,
     insertPlayer, updatePlayer, deletePlayer,
     updatePresencePeriod, savePresenceRatings,

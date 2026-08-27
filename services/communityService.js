@@ -56,5 +56,34 @@
       .map((p) => ({ player: p, breakdown: positionBreakdown(p.id) }));
   }
 
-  window.LH3.services.communityService = { positionBreakdown, allPositionBreakdowns };
+  /**
+   * Pronostics d'UN manager, prêts à afficher (contexte du match inclus) —
+   * ne renvoie que ceux dont la journée n'est plus "ouverte" (RLS
+   * predictions_select_locked_matches filtre déjà côté serveur si on
+   * regarde quelqu'un d'autre que soi-même/l'admin, ceci ne fait que
+   * mettre en forme ce qui revient).
+   */
+  async function loadManagerPredictions(managerId) {
+    const rows = await window.LH3.services.storageService.loadPredictionsForManager(managerId);
+    const matchesById = {};
+    window.LH3.services.seasonService.listMatches().forEach((m) => { matchesById[m.id] = m; });
+
+    return rows
+      .map((row) => {
+        const match = matchesById[row.match_id];
+        if (!match) return null;
+        return {
+          matchday: match.matchday,
+          opponent: match.opponent,
+          result: match.result || null,
+          scoreFor: row.score_for,
+          scoreAgainst: row.score_against,
+          peEarned: row.pe_earned || 0,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.matchday - b.matchday);
+  }
+
+  window.LH3.services.communityService = { positionBreakdown, allPositionBreakdowns, loadManagerPredictions };
 })();

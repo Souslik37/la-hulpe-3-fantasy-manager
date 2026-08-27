@@ -16,10 +16,66 @@
   let activeTab = 'managers';
 
   // ── Onglet Managers ──────────────────────────────────────────────────────
+  function buildSquadSection(manager) {
+    return el('div', {}, [
+      manager.coach && manager.coach.name
+        ? el('div', { style: { marginBottom: '18px' } }, [(() => {
+            const w = el('div');
+            w.innerHTML = window.LH3.components.coachCard.render(manager.coach);
+            return w.firstElementChild;
+          })()])
+        : null,
+      el('div', { className: 'section-title' }, ['🏟️ XV de départ']),
+      window.LH3.components.squadPitch.renderPitch(manager, { readOnly: true }),
+      el('div', { className: 'section-title' }, ['🪑 Banc']),
+      window.LH3.components.squadPitch.renderBench(manager, { readOnly: true }),
+    ]);
+  }
+
+  /** Pronostics d'un manager, une fois les journées verrouillées/terminées (voir RLS predictions_select_locked_matches). Chargé à la demande (pas dans l'état initial). */
+  function buildPredictionsSection(manager, predictionsCache, onLoaded) {
+    if (predictionsCache.rows === null) {
+      if (!predictionsCache.loading) {
+        predictionsCache.loading = true;
+        window.LH3.services.communityService.loadManagerPredictions(manager.id)
+          .then((rows) => { predictionsCache.rows = rows; predictionsCache.loading = false; onLoaded(); })
+          .catch((e) => { console.error('[community] échec chargement pronostics', e); predictionsCache.rows = []; predictionsCache.loading = false; onLoaded(); });
+      }
+      return el('div', { className: 'muted small' }, ['Chargement...']);
+    }
+    if (!predictionsCache.rows.length) {
+      return el('div', { className: 'muted small' }, ['Rien à voir pour l\'instant — un pronostic n\'apparaît ici qu\'une fois sa journée verrouillée ou terminée (jamais pendant qu\'elle est encore ouverte).']);
+    }
+    const { formatSigned, peBadgeClass } = window.LH3.utils.format;
+    return el('div', {}, predictionsCache.rows.map((p) => el('div', { className: 'boost-row' }, [
+      el('div', {}, [
+        el('div', { className: 'boost-label' }, ['J' + p.matchday + ' vs ' + p.opponent]),
+        el('div', { className: 'muted small' }, [
+          'Pronostic : ' + p.scoreFor + '–' + p.scoreAgainst
+          + (p.result ? ' · Réel : ' + p.result.scoreFor + '–' + p.result.scoreAgainst : ''),
+        ]),
+      ]),
+      el('div', { className: 'badge ' + peBadgeClass(p.peEarned) }, [formatSigned(p.peEarned) + ' PE']),
+    ])));
+  }
+
   function openManagerModal(manager) {
     const prestige = window.LH3.services.peService.prestigeInfo(manager);
     const overall = window.LH3.services.playerService.teamOverall(manager);
     const dn = window.LH3.services.managerService.displayName(manager);
+
+    let subTab = 'squad';
+    const predictionsCache = { rows: null, loading: false };
+    const content = el('div', {});
+
+    function refresh() {
+      content.innerHTML = '';
+      content.appendChild(el('div', { className: 'tabs' }, [
+        el('div', { className: 'tab-btn' + (subTab === 'squad' ? ' active' : ''), onClick: () => { subTab = 'squad'; refresh(); } }, ['Équipe']),
+        el('div', { className: 'tab-btn' + (subTab === 'predictions' ? ' active' : ''), onClick: () => { subTab = 'predictions'; refresh(); } }, ['Pronostics']),
+      ]));
+      content.appendChild(subTab === 'squad' ? buildSquadSection(manager) : buildPredictionsSection(manager, predictionsCache, refresh));
+    }
 
     const body = el('div', {}, [
       el('div', { style: { textAlign: 'center', marginBottom: '16px' } }, [
@@ -36,18 +92,9 @@
           manager.role === 'admin' ? el('span', { className: 'badge badge-yellow' }, ['⚙️ Admin']) : null,
         ]),
       ]),
-      manager.coach && manager.coach.name
-        ? el('div', { style: { marginBottom: '18px' } }, [(() => {
-            const w = el('div');
-            w.innerHTML = window.LH3.components.coachCard.render(manager.coach);
-            return w.firstElementChild;
-          })()])
-        : null,
-      el('div', { className: 'section-title' }, ['🏟️ XV de départ']),
-      window.LH3.components.squadPitch.renderPitch(manager, { readOnly: true }),
-      el('div', { className: 'section-title' }, ['🪑 Banc']),
-      window.LH3.components.squadPitch.renderBench(manager, { readOnly: true }),
+      content,
     ]);
+    refresh();
 
     window.LH3.components.modal.open({ title: dn, body, actions: [{ label: 'Fermer', className: 'btn-primary' }] });
   }

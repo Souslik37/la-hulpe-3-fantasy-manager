@@ -211,6 +211,14 @@ create policy "matches_admin_write" on matches for all using (
 create policy "predictions_select_own_or_admin" on predictions for select using (
   auth.uid() = manager_id or exists (select 1 from managers where id = auth.uid() and role = 'admin')
 );
+-- Une fois une journée verrouillée ou terminée (donc plus possible de
+-- soumettre/modifier un pronostic pour ce match), tout le monde peut lire
+-- les pronostics de tout le monde pour CETTE journée-là — jamais tant
+-- qu'elle est encore "ouverte" (on ne veut pas pouvoir copier). Voir
+-- communityService.loadManagerPredictions.
+create policy "predictions_select_locked_matches" on predictions for select using (
+  exists (select 1 from matches where id = predictions.match_id and status <> 'ouvert')
+);
 create policy "predictions_insert_own" on predictions for insert with check (auth.uid() = manager_id);
 create policy "predictions_update_own_or_admin" on predictions for update using (
   auth.uid() = manager_id or exists (select 1 from managers where id = auth.uid() and role = 'admin')
