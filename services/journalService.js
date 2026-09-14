@@ -219,6 +219,53 @@
       }
     }
 
+    // Compte, pour un sous-ensemble de joueurs donné, combien de managers
+    // l'ont coché comme marqueur — sert à la fois à L'Outsider et au Flop
+    // (les deux extrêmes du même calcul, sur deux populations opposées).
+    function scorerPickCounts(playerIds, rows) {
+      const counts = {};
+      playerIds.forEach((id) => { counts[id] = 0; });
+      rows.forEach((r) => (r.try_scorers || []).forEach((id) => { if (id in counts) counts[id] += 1; }));
+      return counts;
+    }
+
+    // Parmi les VRAIS marqueurs, celui coché par le MOINS de managers (au
+    // moins un quand même, sinon ce n'est pas un pari payant mais juste un
+    // angle mort collectif). Pas de seuil fixe : toujours l'extrême, quelle
+    // que soit la taille du groupe.
+    const actualScorers = result.tryScorers || [];
+    if (actualScorers.length) {
+      const counts = scorerPickCounts(actualScorers, graded);
+      const believedIn = actualScorers.filter((id) => counts[id] > 0);
+      if (believedIn.length) {
+        const minCount = Math.min(...believedIn.map((id) => counts[id]));
+        const outsider = believedIn.find((id) => counts[id] === minCount);
+        const believers = graded.filter((r) => (r.try_scorers || []).includes(outsider));
+        roles.push({
+          icon: '🦅', name: 'L\'Outsider', manager: getPlayerName(outsider),
+          detail: (believers.length > 1 ? `Seulement ${believers.length} managers y croyaient` : 'Un seul manager y croyait')
+            + ' (' + believers.map((r) => name(r.manager_id)).join(', ') + ') — et il a marqué.',
+        });
+      }
+    }
+
+    // Symétrique : parmi les joueurs cochés mais qui N'ONT PAS marqué, celui
+    // coché par le PLUS de managers — l'angle mort collectif du groupe.
+    const actualScorerSet = new Set(actualScorers);
+    const allPicked = new Set();
+    graded.forEach((r) => (r.try_scorers || []).forEach((id) => allPicked.add(id)));
+    const missedPicks = [...allPicked].filter((id) => !actualScorerSet.has(id));
+    if (missedPicks.length) {
+      const counts = scorerPickCounts(missedPicks, graded);
+      const maxCount = Math.max(...missedPicks.map((id) => counts[id]));
+      const flop = missedPicks.find((id) => counts[id] === maxCount);
+      const believers = graded.filter((r) => (r.try_scorers || []).includes(flop));
+      roles.push({
+        icon: '💤', name: 'Le Flop', manager: getPlayerName(flop),
+        detail: `${believers.length} manager${believers.length > 1 ? 's' : ''} y croyaient (${believers.map((r) => name(r.manager_id)).join(', ')}) — et il n'a pas marqué.`,
+      });
+    }
+
     // Peut désigner plusieurs managers à la fois (ex: 2 personnes ont
     // toutes les deux deviné homme du match + boulette) — jamais un seul
     // "gagnant" arbitraire choisi parmi des ex æquo.
@@ -231,6 +278,20 @@
       else if (luckyPool.length === 1) detail = luckyPool[0].breakdown.motmCorrect ? 'Homme du match deviné' : 'Boulette devinée';
       else detail = 'Homme du match ou boulette deviné';
       roles.push({ icon: '🍀', name: 'Le Chanceux du Jour', manager: luckyPool.map((r) => name(r.manager_id)).join(', '), detail });
+    }
+
+    // A deviné homme du match ET c'était justement son propre capitaine
+    // (manager.squad.captainId, purement honorifique — voir managerService.rolesFor).
+    const captainCourage = graded.filter((r) => {
+      const m = state.managers[r.manager_id];
+      return r.breakdown.motmCorrect && m && m.squad.captainId && m.squad.captainId === r.man_of_match_id;
+    });
+    if (captainCourage.length) {
+      roles.push({
+        icon: '🫡', name: 'Capitaine Courage',
+        manager: captainCourage.map((r) => name(r.manager_id)).join(', '),
+        detail: 'Avait deviné homme du match — et c\'était son propre capitaine',
+      });
     }
 
     const { formatSigned } = window.LH3.utils.format;

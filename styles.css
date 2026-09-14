@@ -749,7 +749,11 @@ textarea { resize: vertical; min-height: 70px; }
 .report-quote-text { font-size: 13px; font-style: italic; color: var(--text-1); line-height: 1.45; }
 .report-quote-author { font-size: 11px; color: var(--text-2); font-weight: 700; margin-top: 4px; }
 
-.report-roles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 4px; }
+/* align-items:start évite qu'une carte au contenu plus long (ex: liste de
+   plusieurs managers) n'étire toute sa ligne à sa hauteur — chaque carte
+   garde sa propre taille. minmax réduit (avec .modal-wide) pour tenir sur
+   moins de lignes plutôt que de s'étaler en long. */
+.report-roles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 4px; align-items: start; }
 .role-card {
   display: flex; align-items: flex-start; gap: 10px;
   background: var(--bg-3); border-radius: var(--radius-sm); padding: 11px 12px;
@@ -807,6 +811,10 @@ textarea { resize: vertical; min-height: 70px; }
   box-shadow: var(--shadow-pop);
   animation: pop-in .24s var(--ease-out);
 }
+/* Modale plus large (voir components/modal.js opts.wide) — pour un contenu
+   en grille qui a besoin de place pour tenir sur moins de lignes, par ex.
+   un récap de match pensé pour être capturé en screenshot et partagé. */
+.modal-box.modal-wide { max-width: 800px; }
 .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px 0; }
 .modal-head h2 { font-size: 17px; font-weight: 850; }
 .modal-close { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--bg-3); color: var(--text-1); cursor: pointer; font-size: 15px; transition: background .15s; }

@@ -13,13 +13,17 @@
   }
 
   /**
-   * open({ title, body: Node|string, actions: [{label, className, onClick, closeOnClick}], onClose })
+   * open({ title, body: Node|string, actions: [{label, className, onClick, closeOnClick}], onClose, wide })
    *
    * `onClose` (optionnel) se déclenche pour TOUTE façon de fermer cette
    * modale précise (✕, clic hors-modale, ou une action dont closeOnClick
    * n'est pas à false) — jamais pour un simple appel global à
    * `modal.close()` fait par un AUTRE écran. Sert par ex. à annuler un
    * brouillon non explicitement sauvegardé (voir pages/myTeam.js).
+   *
+   * `wide` (optionnel) : modale plus large que la largeur par défaut, pour
+   * un contenu en grille (voir components/matchReport.js) — n'affecte que
+   * CETTE modale, jamais les autres.
    */
   function open(opts) {
     const root = document.getElementById('modal-root');
@@ -47,7 +51,7 @@
       })
     );
 
-    const box = el('div', { className: 'modal-box' }, [
+    const box = el('div', { className: 'modal-box' + (opts.wide ? ' modal-wide' : '') }, [
       el('div', { className: 'modal-head' }, [
         el('h2', {}, [opts.title || '']),
         el('button', { className: 'modal-close', onClick: closeThis }, ['✕']),

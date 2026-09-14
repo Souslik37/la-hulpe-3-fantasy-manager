@@ -142,6 +142,7 @@
     window.LH3.components.modal.open({
       title: 'Journée ' + (entry.matchday || ''),
       body,
+      wide: true, // grille de rôles plus large que la modale par défaut — voir styles.css .modal-wide
       actions: [{ label: 'Fermer', className: 'btn-primary' }],
     });
   }
