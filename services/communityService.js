@@ -73,12 +73,22 @@
         const match = matchesById[row.match_id];
         if (!match) return null;
         return {
+          match,
           matchday: match.matchday,
           opponent: match.opponent,
           result: match.result || null,
           scoreFor: row.score_for,
           scoreAgainst: row.score_against,
+          totalTries: row.total_tries,
+          tryScorers: row.try_scorers || [],
+          manOfMatchId: row.man_of_match_id,
+          blunderId: row.blunder_id,
+          submittedAt: row.submitted_at,
           peEarned: row.pe_earned || 0,
+          // null tant que l'admin n'a pas encore noté cette journée (voir
+          // scoringService.gradeAllPredictionsForMatch) — sert de garde pour
+          // n'afficher le bouton "récap détaillé" qu'une fois le résultat validé.
+          breakdown: row.breakdown || null,
         };
       })
       .filter(Boolean)

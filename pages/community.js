@@ -32,6 +32,16 @@
     ]);
   }
 
+  /** Ouvre le récap détaillé (même vue que Calendrier) d'UN pronostic d'un AUTRE manager. */
+  function openManagerPredictionRecap(p) {
+    const prediction = {
+      scoreFor: p.scoreFor, scoreAgainst: p.scoreAgainst, totalTries: p.totalTries,
+      tryScorers: p.tryScorers, manOfMatchId: p.manOfMatchId, blunderId: p.blunderId, submittedAt: p.submittedAt,
+    };
+    const shimManager = { predictions: { [p.match.id]: prediction }, predictionResults: { [p.match.id]: p.breakdown } };
+    window.LH3.pages.calendar.showRecap(p.match, shimManager);
+  }
+
   /** Pronostics d'un manager, une fois les journées verrouillées/terminées (voir RLS predictions_select_locked_matches). Chargé à la demande (pas dans l'état initial). */
   function buildPredictionsSection(manager, predictionsCache, onLoaded) {
     if (predictionsCache.rows === null) {
@@ -55,7 +65,13 @@
           + (p.result ? ' · Réel : ' + p.result.scoreFor + '–' + p.result.scoreAgainst : ''),
         ]),
       ]),
-      el('div', { className: 'badge ' + peBadgeClass(p.peEarned) }, [formatSigned(p.peEarned) + ' PE']),
+      el('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, [
+        p.breakdown ? el('button', {
+          className: 'btn btn-sm btn-ghost',
+          onClick: (e) => { e.stopPropagation(); openManagerPredictionRecap(p); },
+        }, ['🔍 Détail']) : null,
+        el('div', { className: 'badge ' + peBadgeClass(p.peEarned) }, [formatSigned(p.peEarned) + ' PE']),
+      ]),
     ])));
   }
 

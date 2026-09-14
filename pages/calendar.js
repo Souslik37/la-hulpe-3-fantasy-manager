@@ -165,5 +165,9 @@
     root.appendChild(grid);
   }
 
-  window.LH3.pages.calendar = { render };
+  // showRecap exporté pour être réutilisé ailleurs (Communauté/Classements —
+  // récap détaillé du pronostic d'un AUTRE manager une fois sa journée
+  // notée) : n'importe quel objet avec predictions[matchId]/predictionResults[matchId]
+  // au bon format fait l'affaire, pas besoin du vrai manager actif.
+  window.LH3.pages.calendar = { render, showRecap };
 })();
