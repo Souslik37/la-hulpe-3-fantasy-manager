@@ -28,7 +28,23 @@
     ]);
   }
 
+  /**
+   * Gain de PE sur le dernier match noté (dernière entrée de l'historique —
+   * voir scoringService.recordHistorySnapshot, alimenté pour TOUS les
+   * managers dès le chargement initial, contrairement à manager.predictions
+   * qui ne l'est que pour le manager actif). null si aucun match noté pour
+   * ce manager pour l'instant.
+   */
+  function lastProgression(manager) {
+    const history = manager.history || [];
+    if (!history.length) return null;
+    const latest = history[history.length - 1];
+    const prev = history.length > 1 ? history[history.length - 2] : null;
+    return { delta: latest.pe - (prev ? prev.pe : 0), matchday: latest.matchday };
+  }
+
   function buildPeTable() {
+    const { formatSigned, peBadgeClass } = window.LH3.utils.format;
     const managers = window.LH3.services.managerService.listManagers();
     const active = window.LH3.services.managerService.getActiveManager();
     const rows = managers
@@ -36,20 +52,24 @@
         manager: m,
         pe: m.pe || 0,
         prestige: window.LH3.services.peService.prestigeInfo(m),
-        predictionsMade: Object.keys(m.predictions || {}).length,
+        progression: lastProgression(m),
       }))
       .sort((a, b) => b.pe - a.pe);
 
     if (!rows.length) return el('div', { className: 'empty-state' }, [el('div', { className: 'ic' }, ['📊']), el('div', {}, ['Aucun manager pour le moment.'])]);
 
     const table = el('table', { className: 'standings-table' }, [
-      el('thead', {}, [el('tr', {}, ['#', 'Manager', 'PE', 'Prestige', 'Pronostics faits'].map((h) => el('th', {}, [h])))]),
+      el('thead', {}, [el('tr', {}, ['#', 'Manager', 'PE', 'Prestige', 'Dernière progression'].map((h) => el('th', {}, [h])))]),
       el('tbody', {}, rows.map((r, i) => el('tr', { className: active && r.manager.id === active.id ? 'me' : '' }, [
         el('td', {}, [rankBadge(i)]),
         managerCell(r.manager),
         el('td', { style: { fontWeight: '800', color: 'var(--green-text)' } }, [String(r.pe)]),
         el('td', {}, [r.prestige.name]),
-        el('td', {}, [String(r.predictionsMade)]),
+        el('td', {}, [
+          r.progression
+            ? el('span', { className: 'badge ' + peBadgeClass(r.progression.delta) }, [formatSigned(r.progression.delta) + ' PE (J' + r.progression.matchday + ')'])
+            : el('span', { className: 'muted' }, ['—']),
+        ]),
       ]))),
     ]);
     return table;
