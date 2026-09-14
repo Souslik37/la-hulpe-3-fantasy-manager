@@ -63,25 +63,17 @@ Deno.serve(async (req) => {
     // Identifie l'appelant à partir de son propre token (jamais d'un champ
     // "callerId" envoyé par le client, qui ne prouverait rien).
     const { data: callerData, error: callerErr } = await admin.auth.getUser(callerJwt);
-    if (callerErr || !callerData.user) {
-      return json({ ok: false, reason: 'Session invalide — reconnecte-toi. [debug getUser: ' + (callerErr ? callerErr.message : 'pas de user renvoyé') + ']' }, 401);
-    }
+    if (callerErr || !callerData.user) return json({ ok: false, reason: 'Session invalide — reconnecte-toi.' }, 401);
 
     // Même règle que managers_admin_write côté RLS (supabase/schema.sql) :
     // seul un role='admin' peut agir sur le compte d'un autre manager.
-    // TEMPORAIRE : le message d'erreur inclut des détails de debug (uid
-    // résolu, erreur DB éventuelle, ligne trouvée) le temps de diagnostiquer
-    // pourquoi ce check refuse un compte admin confirmé en base — à
-    // retirer une fois le bug identifié.
+    // Nécessite que service_role ait aussi un GRANT explicite sur cette
+    // table (voir supabase/schema.sql) — RLS n'entre même pas en jeu tant
+    // que ce droit de base n'existe pas.
     const { data: callerManager, error: callerManagerErr } = await admin
-      .from('managers').select('id, role').eq('id', callerData.user.id).maybeSingle();
+      .from('managers').select('role').eq('id', callerData.user.id).maybeSingle();
     if (callerManagerErr || !callerManager || callerManager.role !== 'admin') {
-      return json({
-        ok: false,
-        reason: 'Réservé aux admins. [debug uid=' + callerData.user.id
-          + ' dbErr=' + (callerManagerErr ? JSON.stringify(callerManagerErr) : 'aucune')
-          + ' found=' + JSON.stringify(callerManager) + ']',
-      }, 403);
+      return json({ ok: false, reason: 'Réservé aux admins.' }, 403);
     }
 
     const body = await req.json().catch(() => ({}));

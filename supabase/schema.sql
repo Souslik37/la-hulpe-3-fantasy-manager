@@ -294,6 +294,21 @@ grant select on public.season_archives to anon, authenticated;
 grant insert, update, delete on public.season_archives to authenticated;
 
 -- ============================================================
+-- service_role — utilisé UNIQUEMENT côté serveur, jamais exposé au
+-- navigateur (voir supabase/functions/reset-manager-pin, la seule Edge
+-- Function du projet à ce jour). Contourne déjà RLS par nature ; ces
+-- GRANT ne sont là que parce que ce schéma accorde les droits table par
+-- table de façon explicite ci-dessus (jamais de droits par défaut
+-- implicites) — sans eux, même service_role se prend "permission denied
+-- for table ...", RLS ou pas. Large (toutes les tables) plutôt que juste
+-- celles utilisées aujourd'hui, pour ne pas devoir revenir ici à chaque
+-- nouvelle Edge Function.
+-- ============================================================
+grant usage on schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to service_role;
+alter default privileges in schema public grant select, insert, update, delete on tables to service_role;
+
+-- ============================================================
 -- Roster de base des 31 joueurs (identique à data/players.js, tous les
 -- attributs démarrent à 50).
 -- ============================================================
