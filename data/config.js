@@ -72,7 +72,7 @@
       correctTotalTries: 50, // nombre total d'essais deviné
       correctTotalPoints: 50, // nombre total de points deviné
       perCorrectTryScorer: 25, // par joueur marqueur correctement deviné
-      perWrongTryScorer: -10, // par joueur coché qui n'a PAS marqué
+      perWrongTryScorer: -5, // par joueur coché qui n'a PAS marqué
       correctManOfMatch: 60,
       correctBlunderOfMatch: 40,
 
