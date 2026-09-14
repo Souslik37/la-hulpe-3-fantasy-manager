@@ -133,6 +133,18 @@
   }
 
   /**
+   * Liste de noms lisible, tronquée au-delà de `max` (défaut 4) — un rôle où
+   * beaucoup de managers sont ex æquo (ex: tout le monde a coché le même
+   * marqueur populaire) ne doit jamais faire exploser la hauteur de sa
+   * carte dans components/matchReport.js.
+   */
+  function joinNames(names, max) {
+    max = max || 4;
+    if (names.length <= max) return names.join(', ');
+    return names.slice(0, max).join(', ') + ' et ' + (names.length - max) + ' autre' + (names.length - max > 1 ? 's' : '');
+  }
+
+  /**
    * "Rôles" fun du rapport avant-match — un petit portrait par style de
    * pronostic, calculés sur les pronostics déjà soumis. Toujours basés sur
    * un classement (le plus/le moins) plutôt qu'un seuil fixe : jamais de
@@ -191,19 +203,26 @@
   function computePostMatchRoles(graded, result, state) {
     if (graded.length < 2) return [];
     const name = (id) => managerName(state, id);
-    const withDist = graded.map((r) => ({ r, dist: Math.abs(r.score_for - result.scoreFor) + Math.abs(r.score_against - result.scoreAgainst) }))
-      .sort((a, b) => a.dist - b.dist);
+    // Chaque "palier" de distance (le plus proche, le suivant, le plus
+    // loin) doit regrouper TOUS les managers à égalité à cette distance —
+    // jamais un seul "gagnant" choisi arbitrairement par l'ordre du tri
+    // quand plusieurs ont exactement le même écart.
+    const withDist = graded.map((r) => ({ r, dist: Math.abs(r.score_for - result.scoreFor) + Math.abs(r.score_against - result.scoreAgainst) }));
     const roles = [];
 
-    const voyant = withDist[0];
+    const minDist = Math.min(...withDist.map((x) => x.dist));
+    const voyantPool = withDist.filter((x) => x.dist === minDist);
     roles.push({
-      icon: '🔮', name: 'Le Voyant', manager: name(voyant.r.manager_id),
-      detail: voyant.dist === 0 ? 'Score exact trouvé !' : `À ${voyant.dist} pt${voyant.dist > 1 ? 's' : ''} du score réel (${voyant.r.score_for}–${voyant.r.score_against})`,
+      icon: '🔮', name: 'Le Voyant', manager: joinNames(voyantPool.map((x) => name(x.r.manager_id))),
+      detail: minDist === 0 ? 'Score exact trouvé !'
+        : `À ${minDist} pt${minDist > 1 ? 's' : ''} du score réel` + (voyantPool.length === 1 ? ` (${voyantPool[0].r.score_for}–${voyantPool[0].r.score_against})` : ''),
     });
 
-    const sangFroid = withDist.find((x) => x.r.manager_id !== voyant.r.manager_id);
-    if (sangFroid) {
-      roles.push({ icon: '🧊', name: 'Le Sang-Froid', manager: name(sangFroid.r.manager_id), detail: `À ${sangFroid.dist} pt${sangFroid.dist > 1 ? 's' : ''} du score réel` });
+    const beatenByVoyant = withDist.filter((x) => x.dist > minDist);
+    if (beatenByVoyant.length) {
+      const secondDist = Math.min(...beatenByVoyant.map((x) => x.dist));
+      const sangFroidPool = beatenByVoyant.filter((x) => x.dist === secondDist);
+      roles.push({ icon: '🧊', name: 'Le Sang-Froid', manager: joinNames(sangFroidPool.map((x) => name(x.r.manager_id))), detail: `À ${secondDist} pt${secondDist > 1 ? 's' : ''} du score réel` });
     }
 
     const byScorerCorrect = graded.slice().sort((a, b) => (b.breakdown.correctScorers || []).length - (a.breakdown.correctScorers || []).length)[0];
@@ -213,9 +232,13 @@
     }
 
     if (graded.length >= 3) {
-      const grandEcart = withDist[withDist.length - 1];
-      if (grandEcart.r.manager_id !== voyant.r.manager_id) {
-        roles.push({ icon: '🎢', name: 'Le Grand Écart', manager: name(grandEcart.r.manager_id), detail: `À ${grandEcart.dist} pts du score réel (${grandEcart.r.score_for}–${grandEcart.r.score_against})` });
+      const maxDist = Math.max(...withDist.map((x) => x.dist));
+      if (maxDist > minDist) {
+        const grandEcartPool = withDist.filter((x) => x.dist === maxDist);
+        roles.push({
+          icon: '🎢', name: 'Le Grand Écart', manager: joinNames(grandEcartPool.map((x) => name(x.r.manager_id))),
+          detail: `À ${maxDist} pts du score réel` + (grandEcartPool.length === 1 ? ` (${grandEcartPool[0].r.score_for}–${grandEcartPool[0].r.score_against})` : ''),
+        });
       }
     }
 
@@ -244,7 +267,7 @@
         roles.push({
           icon: '🦅', name: 'L\'Outsider', manager: getPlayerName(outsider),
           detail: (believers.length > 1 ? `Seulement ${believers.length} managers y croyaient` : 'Un seul manager y croyait')
-            + ' (' + believers.map((r) => name(r.manager_id)).join(', ') + ') — et il a marqué.',
+            + ' (' + joinNames(believers.map((r) => name(r.manager_id))) + ') — et il a marqué.',
         });
       }
     }
@@ -262,7 +285,7 @@
       const believers = graded.filter((r) => (r.try_scorers || []).includes(flop));
       roles.push({
         icon: '💤', name: 'Le Flop', manager: getPlayerName(flop),
-        detail: `${believers.length} manager${believers.length > 1 ? 's' : ''} y croyaient (${believers.map((r) => name(r.manager_id)).join(', ')}) — et il n'a pas marqué.`,
+        detail: `${believers.length} manager${believers.length > 1 ? 's' : ''} y croyaient (${joinNames(believers.map((r) => name(r.manager_id)))}) — et il n'a pas marqué.`,
       });
     }
 
@@ -277,7 +300,7 @@
       if (bothLucky.length) detail = 'Homme du match ET boulette devinés';
       else if (luckyPool.length === 1) detail = luckyPool[0].breakdown.motmCorrect ? 'Homme du match deviné' : 'Boulette devinée';
       else detail = 'Homme du match ou boulette deviné';
-      roles.push({ icon: '🍀', name: 'Le Chanceux du Jour', manager: luckyPool.map((r) => name(r.manager_id)).join(', '), detail });
+      roles.push({ icon: '🍀', name: 'Le Chanceux du Jour', manager: joinNames(luckyPool.map((r) => name(r.manager_id))), detail });
     }
 
     // A deviné homme du match ET c'était justement son propre capitaine
@@ -289,7 +312,7 @@
     if (captainCourage.length) {
       roles.push({
         icon: '🫡', name: 'Capitaine Courage',
-        manager: captainCourage.map((r) => name(r.manager_id)).join(', '),
+        manager: joinNames(captainCourage.map((r) => name(r.manager_id))),
         detail: 'Avait deviné homme du match — et c\'était son propre capitaine',
       });
     }
@@ -299,9 +322,9 @@
     const minPe = Math.min(...graded.map((r) => r.pe_earned || 0));
     const crackPool = graded.filter((r) => (r.pe_earned || 0) === maxPe);
     const boulePool = graded.filter((r) => (r.pe_earned || 0) === minPe);
-    roles.push({ icon: '🚀', name: 'Le Crack du Jour', manager: crackPool.map((r) => name(r.manager_id)).join(', '), detail: `${formatSigned(maxPe)} PE sur cette journée` });
+    roles.push({ icon: '🚀', name: 'Le Crack du Jour', manager: joinNames(crackPool.map((r) => name(r.manager_id))), detail: `${formatSigned(maxPe)} PE sur cette journée` });
     if (minPe !== maxPe) {
-      roles.push({ icon: '🤡', name: 'Le Boulet du Jour', manager: boulePool.map((r) => name(r.manager_id)).join(', '), detail: `${formatSigned(minPe)} PE sur cette journée` });
+      roles.push({ icon: '🤡', name: 'Le Boulet du Jour', manager: joinNames(boulePool.map((r) => name(r.manager_id))), detail: `${formatSigned(minPe)} PE sur cette journée` });
     }
 
     return roles;
