@@ -149,5 +149,39 @@
     return data.session;
   }
 
-  window.LH3.services.authService = { getClient, signUp, signIn, signOut, getSession, isValidPin };
+  /**
+   * Admin uniquement : attribue un NOUVEAU code à 4 chiffres à un manager qui
+   * a perdu le sien. Changer le mot de passe Supabase Auth d'un AUTRE
+   * utilisateur demande la clé service_role, qu'on n'expose jamais au
+   * navigateur (voir data/supabaseConfig.js) — l'opération passe donc par
+   * une Edge Function dédiée (supabase/functions/reset-manager-pin) qui
+   * revérifie elle-même côté serveur que l'appelant est bien admin avant
+   * d'agir. Renvoie { ok, reason? }, ne rejette jamais.
+   */
+  async function adminResetPin(managerId, newPin) {
+    if (!isValidPin(newPin)) return { ok: false, reason: 'Le nouveau code doit être composé de 4 chiffres.' };
+    try {
+      const session = await getSession();
+      if (!session) return { ok: false, reason: 'Session expirée — reconnecte-toi.' };
+
+      const cfg = window.LH3.data.SUPABASE_CONFIG;
+      const res = await fetch(cfg.url + '/functions/v1/reset-manager-pin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + session.access_token,
+          'apikey': cfg.publishableKey,
+        },
+        body: JSON.stringify({ managerId, newPin }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) return { ok: false, reason: data.reason || ('Échec inattendu (HTTP ' + res.status + ').') };
+      return { ok: true };
+    } catch (e) {
+      console.error('[authService] adminResetPin a échoué de façon inattendue', e);
+      return { ok: false, reason: 'Connexion au serveur impossible — vérifie ta connexion internet et réessaie.' };
+    }
+  }
+
+  window.LH3.services.authService = { getClient, signUp, signIn, signOut, getSession, isValidPin, adminResetPin };
 })();

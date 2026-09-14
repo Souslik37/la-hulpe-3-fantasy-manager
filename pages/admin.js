@@ -805,12 +805,48 @@
     });
   }
 
+  /** Attribue un nouveau code à 4 chiffres au manager (voir authService.adminResetPin — Edge Function requise). */
+  function openResetPinModal(manager) {
+    const pinInput = el('input', { type: 'text', inputmode: 'numeric', maxlength: '4', placeholder: 'Ex : 4821' });
+
+    const modal = window.LH3.components.modal.open({
+      title: 'Nouveau code pour ' + manager.name,
+      body: el('div', {}, [
+        el('p', { className: 'small', style: { marginBottom: '12px' } }, [
+          'Il pourra se reconnecter avec son nom et ce nouveau code. L\'ancien code cesse immédiatement de fonctionner.',
+        ]),
+        el('div', { className: 'field' }, [el('label', {}, ['Nouveau code (4 chiffres)']), pinInput]),
+      ]),
+      actions: [
+        { label: 'Annuler', className: 'btn-ghost' },
+        {
+          label: 'Attribuer ce code',
+          className: 'btn-primary',
+          closeOnClick: false,
+          onClick: async (btn) => {
+            if (btn) { btn.disabled = true; btn.textContent = 'Attribution...'; }
+            const res = await window.LH3.services.authService.adminResetPin(manager.id, pinInput.value.trim());
+            if (!res.ok) {
+              window.LH3.components.toast.show(res.reason, 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Attribuer ce code'; }
+              return;
+            }
+            window.LH3.components.toast.show('Nouveau code attribué à ' + manager.name + ' ✅', 'success');
+            window.LH3.components.modal.close();
+          },
+        },
+      ],
+    });
+    return modal;
+  }
+
   function buildManagerRow(manager, rerenderManagers) {
     return el('div', { className: 'boost-row' }, [
       el('div', { className: 'boost-label' }, [manager.name + (manager.coach && manager.coach.name ? ' (Coach ' + manager.coach.name + ')' : '')]),
       el('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } }, [
         el('span', { className: 'muted small' }, [(manager.pe || 0) + ' PE']),
         el('button', { className: 'btn btn-sm btn-ghost', title: 'Voir sa composition et éventuellement en tirer une nouvelle', onClick: () => openManagerCompoModal(manager) }, ['Compo']),
+        el('button', { className: 'btn btn-sm btn-ghost', title: 'Attribuer un nouveau code à ce manager (code perdu)', onClick: () => openResetPinModal(manager) }, ['🔑 Code']),
         el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemoveManager(manager, rerenderManagers) }, ['Supprimer']),
       ]),
     ]);
