@@ -75,6 +75,31 @@
       perWrongTryScorer: -10, // par joueur coché qui n'a PAS marqué
       correctManOfMatch: 60,
       correctBlunderOfMatch: 40,
+
+      // Bonus "quasi-exact" — si le critère exact correspondant n'est PAS
+      // touché, un petit filet de récompense dégressif selon l'écart, pour
+      // qu'être très proche ne rapporte jamais 0. Paliers croissants (du
+      // plus proche au plus loin) ; le premier palier dont `maxDeviation`
+      // couvre l'écart s'applique, sinon 0. Jamais cumulé avec le bonus
+      // exact du même critère (voir scoringService.gradePrediction).
+      nearScoreTiers: [
+        // Écart total = |scoreFor prédit - réel| + |scoreAgainst prédit - réel|.
+        { maxDeviation: 3, pe: 50 },
+        { maxDeviation: 6, pe: 30 },
+        { maxDeviation: 9, pe: 15 },
+        { maxDeviation: 12, pe: 5 },
+      ],
+      nearDifferenceTiers: [
+        // Écart entre l'écart de points prédit et l'écart réel.
+        { maxDeviation: 1, pe: 20 },
+        { maxDeviation: 2, pe: 10 },
+      ],
+      nearTotalTriesTiers: [
+        // Volontairement étroit (contrairement au score) : un total
+        // d'essais exact est déjà largement atteignable, pas besoin d'un
+        // grand filet ici. ~20% du bonus exact (50) pour être à 1 essai près.
+        { maxDeviation: 1, pe: 10 },
+      ],
     },
 
     // Nombre maximum de marqueurs d'essai cochables par pronostic — force à

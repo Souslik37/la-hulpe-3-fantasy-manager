@@ -32,6 +32,22 @@
     ])));
   }
 
+  /** Range lisible d'un palier de bonus dégressif (voir CONFIG.pe.near*Tiers), à partir du palier précédent. */
+  function nearTierLabel(tiers, i, unit) {
+    const prevMax = i > 0 ? tiers[i - 1].maxDeviation : 0;
+    const max = tiers[i].maxDeviation;
+    const range = prevMax + 1 === max ? String(max) : (prevMax + 1) + ' à ' + max;
+    return range + ' ' + unit + (max > 1 ? 's' : '') + ' d\'écart';
+  }
+
+  function buildNearTiersTable(tiers, unit) {
+    const { peBadgeClass, formatSigned } = window.LH3.utils.format;
+    return el('div', {}, tiers.map((t, i) => el('div', { className: 'boost-row' }, [
+      el('div', { className: 'boost-label' }, [nearTierLabel(tiers, i, unit)]),
+      el('div', { className: 'badge ' + peBadgeClass(t.pe) }, [formatSigned(t.pe) + ' PE']),
+    ])));
+  }
+
   function buildPresenceTable() {
     const { peBadgeClass, formatSigned } = window.LH3.utils.format;
     return el('div', {}, window.LH3.data.CONFIG.presence.tiers.map((t) => el('div', { className: 'boost-row' }, [
@@ -87,6 +103,19 @@
         el('b', {}, ['Un vrai filet de sécurité']), ' : même une journée complètement ratée (beaucoup de mauvais marqueurs cochés, tout faux par ailleurs) ne fait jamais reculer ton PE cumulé — au pire, elle rapporte 0. Le PE ne peut baisser qu\'en valeur relative au classement, jamais en te retirant ce que tu as déjà.',
       ]),
       buildPeTable(),
+    ]));
+
+    root.appendChild(el('div', { className: 'card', style: { marginBottom: '18px' } }, [
+      el('h3', { style: { marginBottom: '10px' } }, ['🎯 Être proche compte aussi']),
+      el('p', { className: 'small', style: { marginBottom: '12px', lineHeight: '1.6' } }, [
+        'Score exact, écart de points et total d\'essais ne sont plus tout-ou-rien : si tu rates le chiffre exact mais que tu n\'es pas loin, tu touches quand même un bonus dégressif — jamais autant que d\'avoir trouvé pile, mais jamais 0 non plus pour un pronostic très proche. Un seul des deux bonus s\'applique par critère (jamais les deux à la fois).',
+      ]),
+      el('div', { className: 'muted small', style: { fontWeight: '750', textTransform: 'uppercase', fontSize: '11px', margin: '14px 0 6px' } }, ['Score (si pas exact) — écart total entre les deux scores pronostiqués et réels']),
+      buildNearTiersTable(CONFIG.pe.nearScoreTiers, 'point'),
+      el('div', { className: 'muted small', style: { fontWeight: '750', textTransform: 'uppercase', fontSize: '11px', margin: '14px 0 6px' } }, ['Écart de points (si pas exact)']),
+      buildNearTiersTable(CONFIG.pe.nearDifferenceTiers, 'point'),
+      el('div', { className: 'muted small', style: { fontWeight: '750', textTransform: 'uppercase', fontSize: '11px', margin: '14px 0 6px' } }, ['Total d\'essais (si pas exact)']),
+      buildNearTiersTable(CONFIG.pe.nearTotalTriesTiers, 'essai'),
     ]));
 
     root.appendChild(el('div', { className: 'card', style: { marginBottom: '18px' } }, [

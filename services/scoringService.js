@@ -7,15 +7,25 @@
 
   const CONFIG = () => window.LH3.data.CONFIG;
 
+  /** Premier palier (triés du plus proche au plus loin) dont maxDeviation couvre l'écart, sinon 0. */
+  function tieredBonus(deviation, tiers) {
+    const tier = (tiers || []).find((t) => deviation <= t.maxDeviation);
+    return tier ? tier.pe : 0;
+  }
+
   /**
    * Compare un pronostic à un résultat officiel et renvoie le détail des
-   * points gagnés (chaque critère est indépendant et s'additionne).
+   * points gagnés (chaque critère est indépendant et s'additionne). Score,
+   * écart et total d'essais ont chacun un filet "quasi-exact" dégressif
+   * (voir CONFIG.pe.near*Tiers) quand le critère exact n'est pas touché —
+   * jamais les deux à la fois pour un même critère.
    */
   function gradePrediction(prediction, result) {
     const pe = CONFIG().pe;
     const breakdown = {
       resultCorrect: false, exactScore: false, differenceCorrect: false,
       totalTriesCorrect: false, totalPointsCorrect: false,
+      nearScoreBonus: 0, nearDifferenceBonus: 0, nearTotalTriesBonus: 0,
       correctScorers: [], wrongScorers: [], motmCorrect: false, blunderCorrect: false,
       peEarned: 0,
     };
@@ -33,18 +43,34 @@
       breakdown.resultCorrect = true;
       earned += pe.correctResult;
     }
+
     if (prediction.scoreFor === result.scoreFor && prediction.scoreAgainst === result.scoreAgainst) {
       breakdown.exactScore = true;
       earned += pe.exactScore;
+    } else {
+      const scoreDeviation = Math.abs(prediction.scoreFor - result.scoreFor) + Math.abs(prediction.scoreAgainst - result.scoreAgainst);
+      breakdown.nearScoreBonus = tieredBonus(scoreDeviation, pe.nearScoreTiers);
+      earned += breakdown.nearScoreBonus;
     }
+
     if (derived.difference === actualDerived.difference) {
       breakdown.differenceCorrect = true;
       earned += pe.correctDifference;
+    } else {
+      const diffDeviation = Math.abs(derived.difference - actualDerived.difference);
+      breakdown.nearDifferenceBonus = tieredBonus(diffDeviation, pe.nearDifferenceTiers);
+      earned += breakdown.nearDifferenceBonus;
     }
+
     if (prediction.totalTries !== null && prediction.totalTries === result.totalTries) {
       breakdown.totalTriesCorrect = true;
       earned += pe.correctTotalTries;
+    } else if (prediction.totalTries !== null && result.totalTries !== null && result.totalTries !== undefined) {
+      const triesDeviation = Math.abs(prediction.totalTries - result.totalTries);
+      breakdown.nearTotalTriesBonus = tieredBonus(triesDeviation, pe.nearTotalTriesTiers);
+      earned += breakdown.nearTotalTriesBonus;
     }
+
     if (derived.totalPoints === actualDerived.totalPoints) {
       breakdown.totalPointsCorrect = true;
       earned += pe.correctTotalPoints;

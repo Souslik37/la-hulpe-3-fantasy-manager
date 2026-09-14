@@ -22,12 +22,19 @@
       if (!correct) return '❌ Raté';
       return el('span', {}, ['✅ Deviné ', el('span', { className: 'muted small' }, ['+' + peValue + ' PE'])]);
     }
+    // Score / écart / total essais ont un 3e état "proche" (bonus dégressif,
+    // voir CONFIG.pe.near*Tiers) entre "deviné" et "raté".
+    function criterionValueWithNear(correct, peValue, nearBonus) {
+      if (correct) return el('span', {}, ['✅ Deviné ', el('span', { className: 'muted small' }, ['+' + peValue + ' PE'])]);
+      if (nearBonus) return el('span', {}, ['🟡 Proche ', el('span', { className: 'muted small' }, ['+' + nearBonus + ' PE'])]);
+      return '❌ Raté';
+    }
     const rows = hasPrediction ? [
       ['Ton pronostic', `${prediction.scoreFor} – ${prediction.scoreAgainst}`],
       ['Résultat', criterionValue(breakdown && breakdown.resultCorrect, CONFIG.pe.correctResult)],
-      ['Score exact', criterionValue(breakdown && breakdown.exactScore, CONFIG.pe.exactScore)],
-      ['Écart de points', criterionValue(breakdown && breakdown.differenceCorrect, CONFIG.pe.correctDifference)],
-      ['Total essais', criterionValue(breakdown && breakdown.totalTriesCorrect, CONFIG.pe.correctTotalTries)],
+      ['Score exact', criterionValueWithNear(breakdown && breakdown.exactScore, CONFIG.pe.exactScore, breakdown && breakdown.nearScoreBonus)],
+      ['Écart de points', criterionValueWithNear(breakdown && breakdown.differenceCorrect, CONFIG.pe.correctDifference, breakdown && breakdown.nearDifferenceBonus)],
+      ['Total essais', criterionValueWithNear(breakdown && breakdown.totalTriesCorrect, CONFIG.pe.correctTotalTries, breakdown && breakdown.nearTotalTriesBonus)],
       ['Total points', criterionValue(breakdown && breakdown.totalPointsCorrect, CONFIG.pe.correctTotalPoints)],
       ['Homme du match', criterionValue(breakdown && breakdown.motmCorrect, CONFIG.pe.correctManOfMatch)],
       ['Boulette du match', criterionValue(breakdown && breakdown.blunderCorrect, CONFIG.pe.correctBlunderOfMatch)],
