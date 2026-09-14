@@ -31,6 +31,12 @@
    */
   function buildSlot(manager, playerId, posLabel, opts) {
     opts = opts || {};
+    // Un id qui ne correspond plus à aucun joueur du roster (retiré depuis
+    // Administration) doit se comporter comme un emplacement VRAIMENT vide
+    // partout (classe CSS, rôles, clic) — pas seulement visuellement via
+    // card=null (voir rosterService.removePlayer, qui ne nettoie jamais les
+    // squads des managers : l'emplacement redevient vide au rendu, pas en base).
+    if (playerId && !window.LH3.services.playerService.getPlayerBase(playerId)) playerId = null;
     const isSelected = !opts.readOnly && opts.selectedId === playerId;
     const roles = playerId ? window.LH3.services.managerService.rolesFor(manager, playerId) : [];
     const card = playerId ? window.LH3.services.playerService.getCard(manager, playerId) : null;
@@ -92,11 +98,18 @@
    */
   function renderBench(manager, opts) {
     const strip = el('div', { className: 'bench-strip' });
-    const sorted = manager.squad.bench.slice().sort((a, b) => {
-      const baseA = window.LH3.services.playerService.getPlayerBase(a);
-      const baseB = window.LH3.services.playerService.getPlayerBase(b);
-      return (baseA ? baseA.name : '').localeCompare(baseB ? baseB.name : '');
-    });
+    // Contrairement au XV (positions fixes #1-15, où un id disparu doit
+    // rester affiché comme emplacement vide à cette position précise), le
+    // banc n'a pas de position à préserver — un id qui ne résout plus vers
+    // un joueur réel (retiré du roster) disparaît donc entièrement plutôt
+    // que de laisser une tuile fantôme.
+    const sorted = manager.squad.bench
+      .filter((id) => window.LH3.services.playerService.getPlayerBase(id))
+      .sort((a, b) => {
+        const baseA = window.LH3.services.playerService.getPlayerBase(a);
+        const baseB = window.LH3.services.playerService.getPlayerBase(b);
+        return baseA.name.localeCompare(baseB.name);
+      });
     sorted.forEach((playerId) => {
       const wrap = el('div', { className: 'bench-slot' });
       wrap.appendChild(buildSlot(manager, playerId, 'Banc', opts));
