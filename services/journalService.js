@@ -198,7 +198,7 @@
    * "Rôles" fun du rapport après-match — cette fois sur qui avait raison.
    * Même principe que computePreMatchRoles : "le plus proche de" plutôt
    * qu'un seuil, donc toujours un gagnant même un jour où personne n'a
-   * rien deviné d'exact (voir Le Voyant / Le Sang-Froid).
+   * rien deviné d'exact (voir Le Voyant / Le Grand Écart).
    */
   function computePostMatchRoles(graded, result, state) {
     if (graded.length < 2) return [];
@@ -217,13 +217,6 @@
       detail: minDist === 0 ? 'Score exact trouvé !'
         : `À ${minDist} pt${minDist > 1 ? 's' : ''} du score réel` + (voyantPool.length === 1 ? ` (${voyantPool[0].r.score_for}–${voyantPool[0].r.score_against})` : ''),
     });
-
-    const beatenByVoyant = withDist.filter((x) => x.dist > minDist);
-    if (beatenByVoyant.length) {
-      const secondDist = Math.min(...beatenByVoyant.map((x) => x.dist));
-      const sangFroidPool = beatenByVoyant.filter((x) => x.dist === secondDist);
-      roles.push({ icon: '🧊', name: 'Le Sang-Froid', manager: joinNames(sangFroidPool.map((x) => name(x.r.manager_id))), detail: `À ${secondDist} pt${secondDist > 1 ? 's' : ''} du score réel` });
-    }
 
     const byScorerCorrect = graded.slice().sort((a, b) => (b.breakdown.correctScorers || []).length - (a.breakdown.correctScorers || []).length)[0];
     const correctCount = (byScorerCorrect.breakdown.correctScorers || []).length;
