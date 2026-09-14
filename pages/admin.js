@@ -679,7 +679,95 @@
     buildPresenceSection(root);
     buildRosterSection(root);
     buildManagersSection(root);
+    buildRuleSimulationSection(root);
     buildSeasonResetSection(root);
+  }
+
+  // ── Simulateur de règles (aucune écriture — juste un aperçu) ────────────
+  /**
+   * Recalcule les PE de tout le monde avec les règles ACTUELLES de
+   * data/config.js sur tous les matchs déjà notés, et compare au classement
+   * réellement en place (qui, lui, reflète les règles en vigueur au moment
+   * de chaque notation). Purement en lecture : ne réécrit jamais rien — pour
+   * de vrai, il faut re-valider chaque match concerné ("Modifier résultat").
+   * Réutilisable à chaque futur changement de règle, pas un outil jetable.
+   */
+  async function openRuleSimulationModal() {
+    const { formatSigned, peBadgeClass } = window.LH3.utils.format;
+    const body = el('div', {}, [el('div', { className: 'muted small' }, ['Calcul en cours...'])]);
+    window.LH3.components.modal.open({ title: 'Simuler les règles actuelles', body, actions: [{ label: 'Fermer', className: 'btn-primary' }] });
+
+    const matches = window.LH3.services.seasonService.listMatches().filter((m) => m.status === 'termine' && m.result);
+    const managers = window.LH3.services.managerService.listManagers();
+    const deltaByManager = {};
+    managers.forEach((m) => { deltaByManager[m.id] = 0; });
+
+    if (matches.length) {
+      for (const match of matches) {
+        const rows = await window.LH3.services.storageService.loadPredictionsForMatch(match.id);
+        rows.forEach((row) => {
+          if (!(row.manager_id in deltaByManager)) return; // manager supprimé depuis
+          const prediction = {
+            scoreFor: row.score_for, scoreAgainst: row.score_against, totalTries: row.total_tries,
+            tryScorers: row.try_scorers || [], manOfMatchId: row.man_of_match_id, blunderId: row.blunder_id,
+          };
+          const newBreakdown = window.LH3.services.scoringService.gradePrediction(prediction, match.result);
+          deltaByManager[row.manager_id] += newBreakdown.peEarned - (row.pe_earned || 0);
+        });
+      }
+    }
+
+    body.innerHTML = '';
+
+    if (!matches.length) {
+      body.appendChild(el('div', { className: 'muted small' }, ['Aucun match noté pour le moment — rien à simuler.']));
+      return;
+    }
+
+    const rows = managers.map((m) => ({
+      manager: m,
+      oldPe: m.pe || 0,
+      newPe: (m.pe || 0) + deltaByManager[m.id],
+      delta: deltaByManager[m.id],
+    }));
+
+    const rankOf = (list, key) => {
+      const sorted = list.slice().sort((a, b) => b[key] - a[key]);
+      const ranks = {};
+      sorted.forEach((r, i) => { ranks[r.manager.id] = i + 1; });
+      return ranks;
+    };
+    const oldRanks = rankOf(rows, 'oldPe');
+    const newRanks = rankOf(rows, 'newPe');
+    rows.sort((a, b) => b.newPe - a.newPe);
+
+    body.appendChild(el('p', { className: 'small', style: { marginBottom: '12px' } }, [
+      'Basé sur ' + matches.length + ' match' + (matches.length > 1 ? 's' : '') + ' déjà noté' + (matches.length > 1 ? 's' : '') + ', recalculé avec les règles actuelles. Ne change rien tant que tu ne re-valides pas les résultats concernés depuis "Modifier résultat".',
+    ]));
+
+    rows.forEach((r) => {
+      const rankChange = oldRanks[r.manager.id] - newRanks[r.manager.id];
+      const rankIndicator = rankChange > 0 ? '▲' : rankChange < 0 ? '▼' : '=';
+      body.appendChild(el('div', { className: 'boost-row' }, [
+        el('div', {}, [
+          el('div', { className: 'boost-label' }, [r.manager.name]),
+          el('div', { className: 'muted small' }, [
+            '#' + oldRanks[r.manager.id] + ' → #' + newRanks[r.manager.id] + ' ' + rankIndicator + '  ·  ' + r.oldPe + ' → ' + r.newPe + ' PE',
+          ]),
+        ]),
+        el('div', { className: 'badge ' + peBadgeClass(r.delta) }, [formatSigned(r.delta) + ' PE']),
+      ]));
+    });
+  }
+
+  function buildRuleSimulationSection(root) {
+    root.appendChild(el('div', { className: 'section-title' }, ['🔬 Simulateur de règles']));
+    root.appendChild(el('div', { className: 'card' }, [
+      el('p', { className: 'small', style: { marginBottom: '12px' } }, [
+        'Compare le classement actuel à ce qu\'il donnerait si tous les matchs déjà notés étaient recalculés avec les règles d\'AUJOURD\'HUI (data/config.js) — utile après un changement de barème, pour voir l\'impact avant de re-valider quoi que ce soit. Aucune écriture : un aperçu, rien de plus.',
+      ]),
+      el('button', { className: 'btn btn-sm', onClick: () => openRuleSimulationModal() }, ['Comparer ancien vs nouveau classement']),
+    ]));
   }
 
   // ── Reset de saison (archive le classement, remet tout à zéro) ─────────
