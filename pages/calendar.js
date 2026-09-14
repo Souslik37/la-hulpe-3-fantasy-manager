@@ -14,7 +14,12 @@
     const prediction = window.LH3.services.predictionService.getPrediction(manager, match.id);
     const getPlayerName = (id) => { const p = window.LH3.services.playerService.getPlayerBase(id); return p ? p.name : '—'; };
 
-    const hasPrediction = prediction.scoreFor !== null;
+    // Un pronostic "soumis" n'implique plus forcément un score rempli (voir
+    // scoringService.gradePrediction) — hasPrediction doit donc se baser sur
+    // submittedAt, pas sur scoreFor, sans quoi un pronostic partiel (juste
+    // marqueurs/homme du match) s'afficherait à tort comme "rien soumis".
+    const hasPrediction = prediction.submittedAt !== null;
+    const hasScore = prediction.scoreFor !== null && prediction.scoreAgainst !== null;
     // Chaque ligne montre son propre gain (pas seulement le total en bas) —
     // un petit texte grisé à côté de "Deviné", jamais affiché pour un raté
     // puisque ces critères-là n'ont pas de pénalité individuelle.
@@ -29,13 +34,17 @@
       if (nearBonus) return el('span', {}, ['🟡 Proche ', el('span', { className: 'muted small' }, ['+' + nearBonus + ' PE'])]);
       return '❌ Raté';
     }
+    // Pas "raté" mais "pas pronostiqué" — distinction importante pour les
+    // critères qui dépendent du score quand il n'a pas été rempli.
+    function notPredicted() { return el('span', { className: 'muted small' }, ['— (pas de score pronostiqué)']); }
+
     const rows = hasPrediction ? [
-      ['Ton pronostic', `${prediction.scoreFor} – ${prediction.scoreAgainst}`],
-      ['Résultat', criterionValue(breakdown && breakdown.resultCorrect, CONFIG.pe.correctResult)],
-      ['Score exact', criterionValueWithNear(breakdown && breakdown.exactScore, CONFIG.pe.exactScore, breakdown && breakdown.nearScoreBonus)],
-      ['Écart de points', criterionValueWithNear(breakdown && breakdown.differenceCorrect, CONFIG.pe.correctDifference, breakdown && breakdown.nearDifferenceBonus)],
+      ['Ton pronostic', hasScore ? `${prediction.scoreFor} – ${prediction.scoreAgainst}` : notPredicted()],
+      ['Résultat', hasScore ? criterionValue(breakdown && breakdown.resultCorrect, CONFIG.pe.correctResult) : notPredicted()],
+      ['Score exact', hasScore ? criterionValueWithNear(breakdown && breakdown.exactScore, CONFIG.pe.exactScore, breakdown && breakdown.nearScoreBonus) : notPredicted()],
+      ['Écart de points', hasScore ? criterionValueWithNear(breakdown && breakdown.differenceCorrect, CONFIG.pe.correctDifference, breakdown && breakdown.nearDifferenceBonus) : notPredicted()],
       ['Total essais', criterionValueWithNear(breakdown && breakdown.totalTriesCorrect, CONFIG.pe.correctTotalTries, breakdown && breakdown.nearTotalTriesBonus)],
-      ['Total points', criterionValue(breakdown && breakdown.totalPointsCorrect, CONFIG.pe.correctTotalPoints)],
+      ['Total points', hasScore ? criterionValue(breakdown && breakdown.totalPointsCorrect, CONFIG.pe.correctTotalPoints) : notPredicted()],
       ['Homme du match', criterionValue(breakdown && breakdown.motmCorrect, CONFIG.pe.correctManOfMatch)],
       ['Boulette du match', criterionValue(breakdown && breakdown.blunderCorrect, CONFIG.pe.correctBlunderOfMatch)],
     ] : [];

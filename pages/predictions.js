@@ -52,13 +52,15 @@
       className: 'btn btn-primary btn-block', style: { marginTop: '20px' },
       onClick: () => {
         const data = form.getData();
-        if (data.scoreFor === null || data.scoreAgainst === null) {
-          window.LH3.components.toast.show('Renseigne au moins le score pour valider ton pronostic.', 'error');
-          return;
-        }
         const res = window.LH3.services.predictionService.savePrediction(manager, match.id, data);
         if (res.ok) {
-          window.LH3.components.toast.show('Pronostic enregistré ✅', 'success');
+          // Le score reste FORTEMENT recommandé (résultat/score exact/écart
+          // en dépendent) mais n'est plus obligatoire pour enregistrer le
+          // reste (marqueurs, homme du match, boulette) — voir scoringService.gradePrediction.
+          const msg = data.scoreFor === null || data.scoreAgainst === null
+            ? 'Pronostic enregistré ✅ — sans score, le résultat/score exact/écart ne rapporteront rien.'
+            : 'Pronostic enregistré ✅';
+          window.LH3.components.toast.show(msg, 'success');
           render(document.getElementById('page-root'));
         } else {
           window.LH3.components.toast.show(res.reason, 'error');

@@ -61,7 +61,7 @@
       el('div', {}, [
         el('div', { className: 'boost-label' }, ['J' + p.matchday + ' vs ' + p.opponent]),
         el('div', { className: 'muted small' }, [
-          'Pronostic : ' + p.scoreFor + '–' + p.scoreAgainst
+          'Pronostic : ' + (p.scoreFor !== null ? p.scoreFor + '–' + p.scoreAgainst : 'pas de score')
           + (p.result ? ' · Réel : ' + p.result.scoreFor + '–' + p.result.scoreAgainst : ''),
         ]),
       ]),
@@ -240,7 +240,7 @@
             const row = el('div', { className: 'boost-row' }, [
               el('div', { className: 'boost-label' }, ['J' + p.matchday + ' vs ' + p.opponent]),
               el('div', { className: 'muted small' }, [
-                'Pronostic : ' + p.scoreFor + '–' + p.scoreAgainst
+                'Pronostic : ' + (p.scoreFor !== null ? p.scoreFor + '–' + p.scoreAgainst : 'pas de score')
                 + (p.result ? ' · Réel : ' + p.result.scoreFor + '–' + p.result.scoreAgainst : ''),
               ]),
               el('div', { className: 'badge ' + window.LH3.utils.format.peBadgeClass(p.peEarned) }, [window.LH3.utils.format.formatSigned(p.peEarned) + ' PE']),

@@ -30,36 +30,45 @@
       peEarned: 0,
     };
 
-    if (prediction.scoreFor === null || prediction.scoreAgainst === null) {
-      return breakdown; // aucun pronostic soumis pour cette journée
-    }
-
-    const derived = window.LH3.services.predictionService.derive(prediction.scoreFor, prediction.scoreAgainst);
-    const actualDerived = window.LH3.services.predictionService.derive(result.scoreFor, result.scoreAgainst);
-
+    // Le score n'est plus obligatoire pour soumettre un pronostic (voir
+    // pages/predictions.js) : les critères qui EN DÉPENDENT (résultat,
+    // score exact, écart) restent à 0 sans lui, mais marqueurs/homme du
+    // match/boulette/total essais sont chacun indépendants et comptent
+    // quand même — un pronostic partiel n'est plus totalement ignoré.
     let earned = 0;
+    const hasScore = prediction.scoreFor !== null && prediction.scoreAgainst !== null;
 
-    if (derived.result === actualDerived.result) {
-      breakdown.resultCorrect = true;
-      earned += pe.correctResult;
-    }
+    if (hasScore) {
+      const derived = window.LH3.services.predictionService.derive(prediction.scoreFor, prediction.scoreAgainst);
+      const actualDerived = window.LH3.services.predictionService.derive(result.scoreFor, result.scoreAgainst);
 
-    if (prediction.scoreFor === result.scoreFor && prediction.scoreAgainst === result.scoreAgainst) {
-      breakdown.exactScore = true;
-      earned += pe.exactScore;
-    } else {
-      const scoreDeviation = Math.abs(prediction.scoreFor - result.scoreFor) + Math.abs(prediction.scoreAgainst - result.scoreAgainst);
-      breakdown.nearScoreBonus = tieredBonus(scoreDeviation, pe.nearScoreTiers);
-      earned += breakdown.nearScoreBonus;
-    }
+      if (derived.result === actualDerived.result) {
+        breakdown.resultCorrect = true;
+        earned += pe.correctResult;
+      }
 
-    if (derived.difference === actualDerived.difference) {
-      breakdown.differenceCorrect = true;
-      earned += pe.correctDifference;
-    } else {
-      const diffDeviation = Math.abs(derived.difference - actualDerived.difference);
-      breakdown.nearDifferenceBonus = tieredBonus(diffDeviation, pe.nearDifferenceTiers);
-      earned += breakdown.nearDifferenceBonus;
+      if (prediction.scoreFor === result.scoreFor && prediction.scoreAgainst === result.scoreAgainst) {
+        breakdown.exactScore = true;
+        earned += pe.exactScore;
+      } else {
+        const scoreDeviation = Math.abs(prediction.scoreFor - result.scoreFor) + Math.abs(prediction.scoreAgainst - result.scoreAgainst);
+        breakdown.nearScoreBonus = tieredBonus(scoreDeviation, pe.nearScoreTiers);
+        earned += breakdown.nearScoreBonus;
+      }
+
+      if (derived.difference === actualDerived.difference) {
+        breakdown.differenceCorrect = true;
+        earned += pe.correctDifference;
+      } else {
+        const diffDeviation = Math.abs(derived.difference - actualDerived.difference);
+        breakdown.nearDifferenceBonus = tieredBonus(diffDeviation, pe.nearDifferenceTiers);
+        earned += breakdown.nearDifferenceBonus;
+      }
+
+      if (derived.totalPoints === actualDerived.totalPoints) {
+        breakdown.totalPointsCorrect = true;
+        earned += pe.correctTotalPoints;
+      }
     }
 
     if (prediction.totalTries !== null && prediction.totalTries === result.totalTries) {
@@ -69,11 +78,6 @@
       const triesDeviation = Math.abs(prediction.totalTries - result.totalTries);
       breakdown.nearTotalTriesBonus = tieredBonus(triesDeviation, pe.nearTotalTriesTiers);
       earned += breakdown.nearTotalTriesBonus;
-    }
-
-    if (derived.totalPoints === actualDerived.totalPoints) {
-      breakdown.totalPointsCorrect = true;
-      earned += pe.correctTotalPoints;
     }
 
     // Chaque marqueur coché est jugé indépendamment : bonus s'il a vraiment
