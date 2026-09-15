@@ -188,10 +188,11 @@
       onClick: async (e) => {
         const btn = e.target;
         const data = form.getData();
-        if (data.scoreFor === null || data.scoreAgainst === null) {
-          window.LH3.components.toast.show('Renseigne au moins le score.', 'error');
-          return;
-        }
+        // Score volontairement PAS obligatoire ici — un des cas d'usage
+        // typiques de cette modale est justement "il avait tout rempli
+        // SAUF le score" (voir services/scoringService.gradePrediction,
+        // qui compte déjà correctement marqueurs/homme du match/boulette
+        // même sans score).
         btn.disabled = true; btn.textContent = 'Enregistrement...';
         const res = await window.LH3.services.predictionService.adminBackfillPrediction(managerSelect.value, match.id, data);
         if (!res.ok) {
@@ -199,7 +200,10 @@
           btn.disabled = false; btn.textContent = 'Enregistrer ce pronostic';
           return;
         }
-        window.LH3.components.toast.show('Pronostic enregistré' + (match.result ? ' et PE redistribués ✅' : ' ✅'), 'success');
+        const msg = data.scoreFor === null || data.scoreAgainst === null
+          ? 'Pronostic enregistré (sans score) — résultat/score exact/écart ne compteront pas.'
+          : 'Pronostic enregistré' + (match.result ? ' et PE redistribués ✅' : ' ✅');
+        window.LH3.components.toast.show(msg, 'success');
         window.LH3.components.modal.close();
         rerender();
       },
