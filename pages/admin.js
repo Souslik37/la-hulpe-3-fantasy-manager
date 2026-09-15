@@ -154,35 +154,61 @@
     return modal;
   }
 
+  function predictionRowToFormData(row) {
+    if (!row) return {};
+    return {
+      scoreFor: row.score_for, scoreAgainst: row.score_against, totalTries: row.total_tries,
+      tryScorers: row.try_scorers || [], manOfMatchId: row.man_of_match_id, blunderId: row.blunder_id,
+    };
+  }
+
   /**
-   * Rattrape un pronostic jamais soumis (bug corrigé, ou manager qui n'a
-   * pas cliqué "Valider") sans rouvrir la journée pour tout le monde —
-   * voir predictionService.adminBackfillPrediction. Liste uniquement les
-   * managers SANS pronostic existant pour ce match, pour qu'on ne puisse
-   * jamais écraser une vraie soumission par erreur.
+   * Complète un pronostic jamais soumis (bug corrigé, ou manager qui n'a
+   * pas cliqué "Valider"), OU corrige un pronostic déjà enregistré (erreur
+   * de saisie de l'admin lui-même) — sans rouvrir la journée pour tout le
+   * monde. Voir predictionService.adminBackfillPrediction (upsert, marche
+   * dans les deux cas). Tous les managers sont listés ; le formulaire se
+   * pré-remplit avec le pronostic existant s'il y en a un, pour qu'on voie
+   * ce qu'on corrige plutôt que de repartir de zéro à l'aveugle.
    */
   async function openBackfillPredictionModal(match, rerender) {
     const body = el('div', {}, [el('div', { className: 'muted small' }, ['Chargement...'])]);
-    window.LH3.components.modal.open({ title: 'Pronostic manqué · J' + match.matchday, body, actions: [{ label: 'Fermer', className: 'btn-ghost' }] });
+    window.LH3.components.modal.open({ title: 'Compléter/corriger un pronostic · J' + match.matchday, body, actions: [{ label: 'Fermer', className: 'btn-ghost' }] });
 
     const existingRows = await window.LH3.services.storageService.loadPredictionsForMatch(match.id);
-    const alreadySubmitted = new Set(existingRows.map((r) => r.manager_id));
-    const missing = window.LH3.services.managerService.listManagers().filter((m) => !alreadySubmitted.has(m.id));
+    const existingByManager = {};
+    existingRows.forEach((r) => { existingByManager[r.manager_id] = r; });
+    const managers = window.LH3.services.managerService.listManagers();
 
     body.innerHTML = '';
-    if (!missing.length) {
-      body.appendChild(el('div', { className: 'muted small' }, ['Tout le monde a déjà un pronostic soumis pour cette journée.']));
+    if (!managers.length) {
+      body.appendChild(el('div', { className: 'muted small' }, ['Aucun manager pour le moment.']));
       return;
     }
 
-    const managerSelect = el('select', {}, missing.map((m) => el('option', { value: m.id }, [m.name])));
-    const form = window.LH3.components.predictionForm.build({ awayLabel: match.opponent });
+    const managerSelect = el('select', {}, managers.map((m) => el('option', { value: m.id }, [m.name + (existingByManager[m.id] ? ' (déjà soumis)' : ' (pas encore soumis)')])));
+    const statusNote = el('div', { className: 'muted small', style: { margin: '2px 0 14px' } });
+    const formWrap = el('div');
+    let form;
+
+    function rebuildForm() {
+      const existing = existingByManager[managerSelect.value];
+      statusNote.textContent = existing
+        ? '✏️ Déjà soumis — le formulaire est pré-rempli avec ce qui est enregistré, corrige et réenregistre.'
+        : '➕ Pas encore soumis — remplis ce qu\'il t\'a dit avoir mis.';
+      formWrap.innerHTML = '';
+      form = window.LH3.components.predictionForm.build({ awayLabel: match.opponent, initialData: predictionRowToFormData(existing) });
+      formWrap.appendChild(form.node);
+    }
+    managerSelect.addEventListener('change', rebuildForm);
+    rebuildForm();
 
     body.appendChild(el('p', { className: 'small', style: { marginBottom: '12px' } }, [
-      'Pour un manager qui a rempli son pronostic sans réussir à le valider (score manquant, ou bouton jamais cliqué) — remplis à sa place ce qu\'il t\'a dit avoir mis.',
+      'Complète un pronostic jamais validé, ou corrige une erreur dans un pronostic déjà enregistré.',
     ]));
     body.appendChild(el('div', { className: 'field' }, [el('label', {}, ['Manager']), managerSelect]));
-    body.appendChild(form.node);
+    body.appendChild(statusNote);
+    body.appendChild(formWrap);
     body.appendChild(el('button', {
       className: 'btn btn-primary btn-block', style: { marginTop: '20px' },
       onClick: async (e) => {
@@ -254,9 +280,9 @@
     }, ['💬 Rapport après']));
     actions.push(el('button', {
       className: 'btn btn-sm btn-ghost',
-      title: 'Compléter un pronostic jamais soumis (score manquant, ou pas validé)',
+      title: 'Compléter un pronostic jamais soumis, ou corriger un pronostic déjà enregistré',
       onClick: () => openBackfillPredictionModal(match, rerender),
-    }, ['➕ Pronostic manqué']));
+    }, ['📝 Pronostic manqué/erroné']));
     actions.push(el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemoveMatch(match, rerender) }, ['Supprimer']));
 
     return el('div', { className: 'card', style: { display: 'grid', gridTemplateColumns: '50px 1.4fr 1fr 1fr auto', gap: '10px', alignItems: 'center', padding: '12px 16px', marginBottom: '8px' } }, [
