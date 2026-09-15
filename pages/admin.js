@@ -154,6 +154,58 @@
     return modal;
   }
 
+  /**
+   * Rattrape un pronostic jamais soumis (bug corrigé, ou manager qui n'a
+   * pas cliqué "Valider") sans rouvrir la journée pour tout le monde —
+   * voir predictionService.adminBackfillPrediction. Liste uniquement les
+   * managers SANS pronostic existant pour ce match, pour qu'on ne puisse
+   * jamais écraser une vraie soumission par erreur.
+   */
+  async function openBackfillPredictionModal(match, rerender) {
+    const body = el('div', {}, [el('div', { className: 'muted small' }, ['Chargement...'])]);
+    window.LH3.components.modal.open({ title: 'Pronostic manqué · J' + match.matchday, body, actions: [{ label: 'Fermer', className: 'btn-ghost' }] });
+
+    const existingRows = await window.LH3.services.storageService.loadPredictionsForMatch(match.id);
+    const alreadySubmitted = new Set(existingRows.map((r) => r.manager_id));
+    const missing = window.LH3.services.managerService.listManagers().filter((m) => !alreadySubmitted.has(m.id));
+
+    body.innerHTML = '';
+    if (!missing.length) {
+      body.appendChild(el('div', { className: 'muted small' }, ['Tout le monde a déjà un pronostic soumis pour cette journée.']));
+      return;
+    }
+
+    const managerSelect = el('select', {}, missing.map((m) => el('option', { value: m.id }, [m.name])));
+    const form = window.LH3.components.predictionForm.build({ awayLabel: match.opponent });
+
+    body.appendChild(el('p', { className: 'small', style: { marginBottom: '12px' } }, [
+      'Pour un manager qui a rempli son pronostic sans réussir à le valider (score manquant, ou bouton jamais cliqué) — remplis à sa place ce qu\'il t\'a dit avoir mis.',
+    ]));
+    body.appendChild(el('div', { className: 'field' }, [el('label', {}, ['Manager']), managerSelect]));
+    body.appendChild(form.node);
+    body.appendChild(el('button', {
+      className: 'btn btn-primary btn-block', style: { marginTop: '20px' },
+      onClick: async (e) => {
+        const btn = e.target;
+        const data = form.getData();
+        if (data.scoreFor === null || data.scoreAgainst === null) {
+          window.LH3.components.toast.show('Renseigne au moins le score.', 'error');
+          return;
+        }
+        btn.disabled = true; btn.textContent = 'Enregistrement...';
+        const res = await window.LH3.services.predictionService.adminBackfillPrediction(managerSelect.value, match.id, data);
+        if (!res.ok) {
+          window.LH3.components.toast.show(res.reason, 'error');
+          btn.disabled = false; btn.textContent = 'Enregistrer ce pronostic';
+          return;
+        }
+        window.LH3.components.toast.show('Pronostic enregistré' + (match.result ? ' et PE redistribués ✅' : ' ✅'), 'success');
+        window.LH3.components.modal.close();
+        rerender();
+      },
+    }, ['Enregistrer ce pronostic']));
+  }
+
   function buildMatchRow(match, rerender) {
     const opponentInput = el('input', {
       type: 'text', value: match.opponent,
@@ -196,6 +248,11 @@
         window.LH3.components.toast.show(res.ok ? 'Rapport après-match publié ✅' : res.reason, res.ok ? 'success' : 'error');
       },
     }, ['💬 Rapport après']));
+    actions.push(el('button', {
+      className: 'btn btn-sm btn-ghost',
+      title: 'Compléter un pronostic jamais soumis (score manquant, ou pas validé)',
+      onClick: () => openBackfillPredictionModal(match, rerender),
+    }, ['➕ Pronostic manqué']));
     actions.push(el('button', { className: 'btn btn-sm btn-ghost', onClick: () => confirmRemoveMatch(match, rerender) }, ['Supprimer']));
 
     return el('div', { className: 'card', style: { display: 'grid', gridTemplateColumns: '50px 1.4fr 1fr 1fr auto', gap: '10px', alignItems: 'center', padding: '12px 16px', marginBottom: '8px' } }, [

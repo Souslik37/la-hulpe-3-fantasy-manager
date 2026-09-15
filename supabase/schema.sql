@@ -219,7 +219,15 @@ create policy "predictions_select_own_or_admin" on predictions for select using 
 create policy "predictions_select_locked_matches" on predictions for select using (
   exists (select 1 from matches where id = predictions.match_id and status <> 'ouvert')
 );
-create policy "predictions_insert_own" on predictions for insert with check (auth.uid() = manager_id);
+-- Un admin peut aussi INSÉRER le pronostic d'un AUTRE manager (pas
+-- seulement le mettre à jour) — sert à rattraper un vrai pépin de
+-- soumission (score manquant avant correctif, "j'ai rempli mais pas
+-- cliqué valider") sans devoir rouvrir la journée pour tout le monde.
+-- Voir pages/admin.js openBackfillPredictionModal.
+create policy "predictions_insert_own_or_admin" on predictions for insert with check (
+  auth.uid() = manager_id or exists (select 1 from managers where id = auth.uid() and role = 'admin')
+);
+-- (remplace l'ancienne "predictions_insert_own", plus restrictive)
 create policy "predictions_update_own_or_admin" on predictions for update using (
   auth.uid() = manager_id or exists (select 1 from managers where id = auth.uid() and role = 'admin')
 );

@@ -60,5 +60,34 @@
     return { ok: true };
   }
 
-  window.LH3.services.predictionService = { emptyPrediction, getPrediction, derive, savePrediction };
+  /**
+   * Admin uniquement (RLS predictions_insert_own_or_admin) : soumet le
+   * pronostic d'UN AUTRE manager à sa place — pour rattraper un vrai pépin
+   * de soumission (score manquant avant le correctif, ou "j'ai rempli mais
+   * pas cliqué valider"), sans devoir rouvrir la journée pour tout le
+   * monde. Contrairement à savePrediction, fonctionne même si la journée
+   * n'est plus "ouverte". Si le match est déjà noté, re-note tout le monde
+   * juste après (idempotent, voir scoringService.gradeAllPredictionsForMatch)
+   * pour que ce pronostic compte immédiatement dans les PE.
+   */
+  async function adminBackfillPrediction(managerId, matchId, data) {
+    const match = window.LH3.services.seasonService.getMatch(matchId);
+    if (!match) return { ok: false, reason: 'Match introuvable.' };
+    const maxScorers = window.LH3.data.CONFIG.maxTryScorerPicks;
+    if (data.tryScorers && data.tryScorers.length > maxScorers) {
+      return { ok: false, reason: `Maximum ${maxScorers} marqueurs par pronostic.` };
+    }
+
+    const prediction = Object.assign(emptyPrediction(), data, { submittedAt: new Date().toISOString() });
+    const ok = await window.LH3.services.storageService.savePredictionRow(managerId, matchId, prediction);
+    if (!ok) return { ok: false, reason: 'Écriture impossible — vérifie ta connexion et réessaie.' };
+
+    if (match.result) {
+      await window.LH3.services.scoringService.gradeAllPredictionsForMatch(matchId);
+    }
+    window.LH3.services.stateService.notify();
+    return { ok: true };
+  }
+
+  window.LH3.services.predictionService = { emptyPrediction, getPrediction, derive, savePrediction, adminBackfillPrediction };
 })();
